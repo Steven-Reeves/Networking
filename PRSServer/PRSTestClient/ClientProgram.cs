@@ -31,15 +31,15 @@ namespace PRSTestClient
 
             try
             {
+               //Run tests
                 TestCase1(clientSocket);
+                //TestCase2
+                //TestCase3
+                //TestCase4
 
-                // send REQUEST_PORT
-                PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateREQUEST_PORT(serviceName));
-
-                // check status
-
+                //Stop server
                 StopServer(clientSocket);
-                // send STOP
+
 
             }
             catch (Exception ex)
@@ -57,6 +57,7 @@ namespace PRSTestClient
 
         private static void StopServer(Socket clientSocket)
         {
+            IPEndPoint endPt = new IPEndPoint(IPAddress.Parse(ADDRESS), PORT);
             PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateSTOP());
         }
 
@@ -72,7 +73,10 @@ namespace PRSTestClient
             string serviceName = "FTP Server";
             ushort allocatedPort = 0;
 
+            //Send REQUEST_PORT
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateREQUEST_PORT(serviceName));
 
+            //Check and validate SUCCESS
             IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
             PRSMessage statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
             if (statusMsg.status != PRSMessage.Status.SUCCESS)

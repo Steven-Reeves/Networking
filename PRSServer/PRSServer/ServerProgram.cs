@@ -10,6 +10,7 @@ namespace PRSServer
 {
     class ServerProgram
     {
+        private static List<ManagedPort> ports;
 
         class ManagedPort
         {
@@ -26,7 +27,6 @@ namespace PRSServer
             public DateTime lastAlive;
         }
 
-        static private List<ManagedPort> ports;
         static void Main(string[] args)
         {
             // TODO: interpret cmd line options
@@ -44,7 +44,7 @@ namespace PRSServer
 
             // initialize a collection of un-reserved ports to manage
            ports = new List<ManagedPort>();
-            for (int p = startingClientPort; p <= endingClientPort; p++)
+           for (ushort p = startingClientPort; p <= endingClientPort; p++)
             {
                 ManagedPort mp = new ManagedPort();
                 mp.port = p;
@@ -86,6 +86,7 @@ namespace PRSServer
                             break;
                         case PRSMessage.MsgType.KEEP_ALIVE:
                             Console.WriteLine("Received KEEP_ALIVE message");
+                            response = Handle_KEEP_ALIVE(msg);
                             done = true;
                             break;
 
@@ -119,49 +120,93 @@ namespace PRSServer
         {
             PRSMessage response = null;
 
-            /*
-            validate msg arguments...
-	        if service name already has a reserved port
-		        return SERVICE_IN_USE
-	        if otherwise invalid
-		        return INVALID_ARG
-        find lowest numbered unused port
-	        reserve the chosen port
-	        set last alive to now
-	        return SUCCESS and the chosen port
-        if no port available
-	        return ALL_PORTS_BUSY
-        if error occurs
-	        return UNDEFINED_ERROR
-            */
-            if (!ValidateServiceNameNotUsed(msg.serviceName))
+            try
             {
-                //Find lowest unused port
-                ManagedPort mp = FindFirstAvailable();
-                if (mp != null)
-                {               
-                    //reserve said port
-                    mp.reserved = true;
-                    mp.serviceName = msg.serviceName;
-                    mp.lastAlive = DateTime.Now;
-                    response = PRSMessage.CreateRESPONSE(msg.serviceName, mp.port, PRSMessage.Status.SUCCESS);
+                if (!ValidateServiceNameAvailable(msg.serviceName))
+                {
+                    //Find lowest unused port
+                    ManagedPort mp = FindFirstAvailable();
+                    if (mp != null)
+                    {
+                        //reserve said port
+                        mp.reserved = true;
+                        mp.serviceName = msg.serviceName;
+                        mp.lastAlive = DateTime.Now;
+
+                        //Send success to client, along with reserved port
+                        response = PRSMessage.CreateRESPONSE(msg.serviceName, mp.port, PRSMessage.Status.SUCCESS);
+                    }
+                    else
+                    {
+                        //No available ports
+                        response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.ALL_PORTS_BUSY);
+                    }
                 }
                 else
                 {
-                    //No available ports
-                    response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.ALL_PORTS_BUSY);
+                    //service requested already has an asssigned port
+                    response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.SERVICE_IN_USE);
                 }
-
+            }            
+            catch (Exception ex)
+            {
+                //Unkown error
+                Console.WriteLine("Exception in Handle_REQUEST_PORT " + ex.Message);
+                response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.UNDEFINED_ERROR);
             }
- 
-
-
-
             // return expected response type message
             return response;   
         }
 
-        private static bool ValidateServiceNameNotUsed(msg.servicename)
+        private static PRSMessage Handle_KEEP_ALIVE(PRSMessage msg)
+        {
+            PRSMessage response = null;
+
+            try
+            {
+                // validate msg arguments
+                ManagedPort port = FindReservedPort(msg.serviceName, msg.port);
+                if (port != null)
+                {
+                    // update the keepalive to now
+                        port.lastAlive = DateTime.Now;
+
+                        //Send success to client, along with reserved port
+                        response = PRSMessage.CreateRESPONSE(msg.serviceName, port.port, PRSMessage.Status.SUCCESS);
+                }
+                else
+                {
+                    // No port found for that service name and port
+                    response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.INVALID_ARG);
+                }
+            }
+            catch (Exception ex)
+            {
+                //Unkown error
+                Console.WriteLine("Exception in Handle_KEEP_ALIVE " + ex.Message);
+                response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.UNDEFINED_ERROR);
+            }
+            // return expected response type message
+            return response;
+        }
+
+        
+        private static ManagedPort FindReservedPort(string serviceName, ushort port)
+        {
+            if (ports == null)
+                throw new Exception("Ports not available!");
+
+            foreach (ManagedPort mp in ports)
+            {
+                if ( mp.reserved && mp.serviceName == serviceName && mp.port == port)
+                    return mp;
+            }
+
+            //None found with that service name/port
+            return null;
+        }
+
+        private static bool ValidateServiceNameAvailable(string servicename)
         {
             if (ports == null)
                 throw new Exception("Ports not available!");
