@@ -29,21 +29,34 @@ namespace PRSServer
 
         static void Main(string[] args)
         {
-            // TODO: interpret cmd line options
-            /*
-            -p <service port>
-            -s <starting client port number>
-            -e <ending client port number>
-            -t <keep alive time in seconds>
-            */
 
             ushort servicePort = 30000;
             ushort startingClientPort = 40000;
             ushort endingClientPort = 40099;
             int keepAlive = 300;
 
+            string[] cmdArguments = Environment.GetCommandLineArgs();
+            string[] validArguments = new string[4] { "-p", "-s", "-e", "-t" };
+
+            Console.WriteLine("********* PRS server started *********" + "\n");
+            foreach (string s in cmdArguments)
+            {
+                // If -p entered
+                if (s == validArguments[0])
+                    Console.WriteLine("Argument " + validArguments[0].ToString() + " entered. Service Port: " + servicePort.ToString());
+                // If -s entered
+                if (s == validArguments[1])
+                    Console.WriteLine("Argument " + validArguments[1].ToString() + " entered. Starting Client Port:" + startingClientPort.ToString());
+                // If -e entered
+                if (s == validArguments[2])
+                    Console.WriteLine("Argument " + validArguments[2].ToString() + " entered. Ending Client Port:" + endingClientPort.ToString());
+                // If -t entered
+                if (s == validArguments[3])
+                    Console.WriteLine("Argument " + validArguments[3].ToString() + " entered. Keep Alive time: " + keepAlive + " seconds.");
+            }
+
             // initialize a collection of un-reserved ports to manage
-           ports = new List<ManagedPort>();
+            ports = new List<ManagedPort>();
            for (ushort p = startingClientPort; p <= endingClientPort; p++)
             {
                 ManagedPort mp = new ManagedPort();
@@ -84,6 +97,7 @@ namespace PRSServer
                             Console.WriteLine("Received STOP message");
                             done = true;
                             break;
+
                         case PRSMessage.MsgType.KEEP_ALIVE:
                             Console.WriteLine("Received KEEP_ALIVE message");
                             response = Handle_KEEP_ALIVE(msg);
