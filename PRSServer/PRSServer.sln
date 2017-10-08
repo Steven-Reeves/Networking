@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PRSServer", "PRSServer\PRSServer.csproj", "{0CDFDF74-AA83-453F-8D25-7E129B34FA17}"
+	ProjectSection(ProjectDependencies) = postProject
+		{05DB1235-CB71-4CA5-97B6-988354107418} = {05DB1235-CB71-4CA5-97B6-988354107418}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PRSTestClient", "PRSTestClient\PRSTestClient.csproj", "{0804A109-6C13-485F-9122-D38833C4A8A5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{05DB1235-CB71-4CA5-97B6-988354107418} = {05DB1235-CB71-4CA5-97B6-988354107418}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PRSProtocolLibrary", "PRSProtocolLibrary\PRSProtocolLibrary.csproj", "{05DB1235-CB71-4CA5-97B6-988354107418}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0CDFDF74-AA83-453F-8D25-7E129B34FA17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CDFDF74-AA83-453F-8D25-7E129B34FA17}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CDFDF74-AA83-453F-8D25-7E129B34FA17}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CDFDF74-AA83-453F-8D25-7E129B34FA17}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0804A109-6C13-485F-9122-D38833C4A8A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0804A109-6C13-485F-9122-D38833C4A8A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0804A109-6C13-485F-9122-D38833C4A8A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0804A109-6C13-485F-9122-D38833C4A8A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05DB1235-CB71-4CA5-97B6-988354107418}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05DB1235-CB71-4CA5-97B6-988354107418}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05DB1235-CB71-4CA5-97B6-988354107418}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05DB1235-CB71-4CA5-97B6-988354107418}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {92E747BE-3565-4059-ACA8-9B9D18FB9ADC}
+	EndGlobalSection
+EndGlobal
