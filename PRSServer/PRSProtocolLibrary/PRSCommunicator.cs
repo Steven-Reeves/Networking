@@ -12,7 +12,7 @@ namespace PRSProtocolLibrary
     {
         public static void SendMessage(Socket sock, IPEndPoint endPt, PRSMessage msg)
         {
-            Console.WriteLine("Sending message to server...");
+            Console.WriteLine("Sending message......");
             byte[] buffer = msg.Serialize();
             int result = sock.SendTo(buffer, endPt);
             Console.WriteLine("Sent " + result.ToString() + " bytes: " + new string(ASCIIEncoding.UTF8.GetChars(buffer)));

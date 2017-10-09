@@ -101,11 +101,24 @@ namespace PRSServer
                         case PRSMessage.MsgType.KEEP_ALIVE:
                             Console.WriteLine("Received KEEP_ALIVE message");
                             response = Handle_KEEP_ALIVE(msg);
-                            done = true;
+                            break;
+
+                        case PRSMessage.MsgType.LOOKUP_PORT:
+                            Console.WriteLine("Received LOOKUP_PORT message");
+                            response = Handle_LOOKUP_PORT(msg);
+                            break;
+
+                        case PRSMessage.MsgType.CLOSE_PORT:
+                            Console.WriteLine("Received CLOSE_PORT message");
+                            response = Handle_CLOSE_PORT(msg);
+                            break;
+
+                        case PRSMessage.MsgType.PORT_DEAD:
+                            Console.WriteLine("Received PORT_DEAD message");
+                            response = Handle_PORT_DEAD(msg);
                             break;
 
                         default:
-                            // TODO: handle unknown message type!
                             response = PRSMessage.CreateRESPONSE(null, 0, PRSMessage.Status.INVALID_ARG);
                             break;
                     }
@@ -204,7 +217,100 @@ namespace PRSServer
             return response;
         }
 
-        
+
+        private static PRSMessage Handle_CLOSE_PORT(PRSMessage msg)
+        {
+            PRSMessage response = null;
+
+            try
+            {
+                ManagedPort mp = FindReservedPort(msg.serviceName, msg.port);
+                if (mp != null)
+                {
+                    // Close service and make port available
+                    mp.reserved = false;
+                    mp.serviceName = null;
+
+                    //Send success to client
+                    response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.SUCCESS);
+                }
+                else
+                {
+                    // No port found for that service name and port
+                    response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.INVALID_ARG);
+                }
+            }
+            catch (Exception ex)
+            {
+                //Unkown error
+                Console.WriteLine("Exception in Handle_CLOSE_PORT " + ex.Message);
+                response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.UNDEFINED_ERROR);
+            }
+            // return expected response type message
+            return response;
+        }
+
+        private static PRSMessage Handle_PORT_DEAD(PRSMessage msg)
+        {
+            PRSMessage response = null;
+
+            try
+            {
+                ManagedPort mp = FindReservedPort(msg.serviceName, msg.port);
+                if (mp != null)
+                {
+                    // TODO: Mark Port as dead
+
+
+                    //Send success to client
+                    response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.SUCCESS);
+                }
+                else
+                {
+                    // No port found for that service name and port
+                    response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.INVALID_ARG);
+                }
+            }
+            catch (Exception ex)
+            {
+                //Unkown error
+                Console.WriteLine("Exception in Handle_PORT_DEAD " + ex.Message);
+                response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.UNDEFINED_ERROR);
+            }
+            // return expected response type message
+            return response;
+        }
+
+        private static PRSMessage Handle_LOOKUP_PORT(PRSMessage msg)
+        {
+            // Look for same service name and return port
+            // SERVICE_NOT_FOUND if not found
+            PRSMessage response = null;
+
+            try
+            {
+                ManagedPort port = LookupReservedPort(msg.serviceName);
+                if (port != null)
+                {
+                    //Send success to client, along with port number
+                    response = PRSMessage.CreateRESPONSE(msg.serviceName, port.port, PRSMessage.Status.SUCCESS);
+                }
+                else
+                {
+                    // No service name found
+                    response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.SERVICE_NOT_FOUND);
+                }
+            }
+            catch (Exception ex)
+            {
+                //Unkown error
+                Console.WriteLine("Exception in Handle_LOOKUP_PORT " + ex.Message);
+                response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.UNDEFINED_ERROR);
+            }
+            // return expected response type message
+            return response;
+        }
+
         private static ManagedPort FindReservedPort(string serviceName, ushort port)
         {
             if (ports == null)
@@ -213,6 +319,21 @@ namespace PRSServer
             foreach (ManagedPort mp in ports)
             {
                 if ( mp.reserved && mp.serviceName == serviceName && mp.port == port)
+                    return mp;
+            }
+
+            //None found with that service name/port
+            return null;
+        }
+
+        private static ManagedPort LookupReservedPort(string serviceName)
+        {
+            if (ports == null)
+                throw new Exception("Ports not available!");
+
+            foreach (ManagedPort mp in ports)
+            {
+                if (mp.reserved && mp.serviceName == serviceName)
                     return mp;
             }
 

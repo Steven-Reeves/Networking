@@ -32,7 +32,7 @@ namespace PRSTestClient
             try
             {
                //Run tests
-                TestCase1(clientSocket);
+                //TestCase1(clientSocket);
                 //TestCase2
                 //TestCase3
                 //TestCase4

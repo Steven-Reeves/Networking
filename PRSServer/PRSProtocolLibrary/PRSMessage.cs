@@ -68,6 +68,14 @@ namespace PRSProtocolLibrary
             return msg;
         }
 
+        public static PRSMessage CreateLOOKUP_PORT(string serviceName)
+        {
+            PRSMessage msg = new PRSMessage();
+            msg.msgType = MsgType.LOOKUP_PORT;
+            msg.serviceName = serviceName;
+            return msg;
+        }
+
         public static PRSMessage CreateKEEP_ALIVE(string serviceName, ushort port)
         {
             PRSMessage msg = new PRSMessage();
@@ -86,6 +94,14 @@ namespace PRSProtocolLibrary
             return msg;
         }
 
+        public static PRSMessage CreatePORT_DEAD(string serviceName, ushort port)
+        {
+            PRSMessage msg = new PRSMessage();
+            msg.msgType = MsgType.PORT_DEAD;
+            msg.serviceName = serviceName;
+            msg.port = port;
+            return msg;
+        }
         public static PRSMessage CreateRESPONSE(string serviceName, ushort port, Status status)
         {
             PRSMessage msg = new PRSMessage();
