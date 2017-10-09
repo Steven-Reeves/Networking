@@ -23,8 +23,19 @@ namespace PRSServer
 
             public ushort port;
             public bool reserved;
+            public bool isDead;
             public string serviceName;
             public DateTime lastAlive;
+
+            // Check if port is dead
+            public bool CheckDead()
+            {
+                if ((DateTime.Now - lastAlive).TotalSeconds >= 300)
+                    isDead = true;
+                isDead = false;
+
+                return isDead;
+            }
         }
 
         static void Main(string[] args)
@@ -82,6 +93,21 @@ namespace PRSServer
                 {
                     // receive a message from a client
                     IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+
+                    //Check to see if any ports died
+                    foreach (ManagedPort mp in ports)
+                    {
+                        if(mp.CheckDead())
+                        {
+                            // Close service and make port available
+                            mp.reserved = false;
+                            mp.serviceName = null;
+                            Console.WriteLine(mp.serviceName + " HAS DIED!");
+                        }
+
+                    }
+                    Console.WriteLine("DEADCHECK");
+
                     PRSMessage msg = PRSCommunicator.ReceiveMessage(listeningSocket, ref remoteEP);
 
                     // handle the message
@@ -256,11 +282,11 @@ namespace PRSServer
 
             try
             {
-                ManagedPort mp = FindReservedPort(msg.serviceName, msg.port);
+                ManagedPort mp = FindPort(msg.port);
                 if (mp != null)
                 {
-                    // TODO: Mark Port as dead
-
+                    //Mark Port as dead
+                    mp.isDead = true;
 
                     //Send success to client
                     response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.SUCCESS);
@@ -341,6 +367,21 @@ namespace PRSServer
             return null;
         }
 
+        private static ManagedPort FindPort(ushort port)
+        {
+            if (ports == null)
+                throw new Exception("Ports not available!");
+
+            foreach (ManagedPort mp in ports)
+            {
+                if (mp.reserved && mp.port == port)
+                    return mp;
+            }
+
+            //None found with that port
+            return null;
+        }
+
         private static bool ValidateServiceNameAvailable(string servicename)
         {
             if (ports == null)
@@ -361,10 +402,10 @@ namespace PRSServer
             if (ports == null)
                 throw new Exception("Ports not available!");
 
-            //Find first that's not reserved
+            //Find first that's not reserved or dead
             foreach (ManagedPort mp in ports)
             {
-                if (!mp.reserved)
+                if (!mp.reserved && !mp.isDead)
                     return mp;
             }
 

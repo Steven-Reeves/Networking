@@ -20,7 +20,7 @@ namespace PRSProtocolLibrary
 
         public static PRSMessage ReceiveMessage(Socket sock, ref IPEndPoint remoteIPEP)
         {
-            Console.WriteLine("Waiting for message from client...");
+            Console.WriteLine("Waiting for message..........");
             byte[] buffer = new byte[PRSMessage.SIZE];
             EndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
             int result = sock.ReceiveFrom(buffer, ref remoteEP);
