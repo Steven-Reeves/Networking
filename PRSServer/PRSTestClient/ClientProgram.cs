@@ -32,8 +32,8 @@ namespace PRSTestClient
             try
             {
                //Run tests
-                //TestCase1(clientSocket);
-                //TestCase2
+                //TestCase1(clientSocket); 
+                TestCase2(clientSocket);
                 //TestCase3
                 //TestCase4
 
@@ -93,11 +93,55 @@ namespace PRSTestClient
             if (statusMsg.status != PRSMessage.Status.SUCCESS)
                 throw new Exception("TestCase1 Failed! No SUCCESS on KeepAlive.");
 
+
             // send CLOSE_PORT
             PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateCLOSE_PORT(serviceName, allocatedPort));
             // Check status
-            if (statusMsg.status == PRSMessage.Status.SUCCESS)
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
                 throw new Exception("TestCase1 Failed! No SUCCESS on CLOSE_PORT.");
+        }
+
+        private static void TestCase2(Socket clientSocket)
+        {
+            //Test case 2: "FTP Server2" is requested, looked up, then closed.
+
+            // construct the server's address and port
+            IPEndPoint endPt = new IPEndPoint(IPAddress.Parse(ADDRESS), PORT);
+
+            string serviceName = "FTP Server2";
+            ushort allocatedPort = 0;
+
+            //Send REQUEST_PORT
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateREQUEST_PORT(serviceName));
+
+            //Check and validate SUCCESS
+            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+            PRSMessage statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                throw new Exception("TestCase1 Failed! No SUCCESS on REQUEST_PORT.");
+
+            allocatedPort = statusMsg.port;
+            Console.WriteLine("Allocated port of " + allocatedPort.ToString());
+
+            //Send LOOKUP_PORT
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateLOOKUP_PORT(serviceName));
+
+            statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                throw new Exception("TestCase1 Failed! No SUCCESS on LOOKUP_PORT.");
+
+            allocatedPort = statusMsg.port;
+            Console.WriteLine("LOOKUP_PORT returned port: " + allocatedPort.ToString());
+
+            //Send CLOSE_PORT
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateCLOSE_PORT(serviceName, allocatedPort));
+
+            statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                throw new Exception("TestCase2 Failed! No SUCCESS on CLOSE_PORT.");
+
+            Console.WriteLine(serviceName + "'s port was just closed.");
+
         }
     }
 }

@@ -149,7 +149,7 @@ namespace PRSServer
 
             try
             {
-                if (!ValidateServiceNameAvailable(msg.serviceName))
+                if (ValidateServiceNameAvailable(msg.serviceName))
                 {
                     //Find lowest unused port
                     ManagedPort mp = FindFirstAvailable();
@@ -196,10 +196,10 @@ namespace PRSServer
                 if (port != null)
                 {
                     // update the keepalive to now
-                        port.lastAlive = DateTime.Now;
-
-                        //Send success to client, along with reserved port
-                        response = PRSMessage.CreateRESPONSE(msg.serviceName, port.port, PRSMessage.Status.SUCCESS);
+                    port.lastAlive = DateTime.Now;
+                    Console.WriteLine("Service: " + port.serviceName + "lastAlive updated to: " + port.lastAlive.ToString());
+                    //Send success to client, along with reserved port
+                    response = PRSMessage.CreateRESPONSE(msg.serviceName, port.port, PRSMessage.Status.SUCCESS);
                 }
                 else
                 {
