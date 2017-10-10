@@ -24,11 +24,12 @@ namespace PRSTestClient
             try
             {
                 //Run tests
-                // TODO: test Powerpoint cases
                 //TestCase1(clientSocket); 
                 //TestCase2(clientSocket);
-                TestCase3(clientSocket);
-                //TestCase4
+                //TestCase3(clientSocket);
+                TestCase4(clientSocket);
+                // TODO: Run testCase5
+                //TestCase5(clientSocket);
 
                 //Stop server
                 StopServer(clientSocket);
@@ -139,13 +140,15 @@ namespace PRSTestClient
 
         private static void TestCase3(Socket clientSocket)
         {
-            // Request port and wait for it to die, then 
+            // Request port and wait for it to die, then look it up, request new port (shouldn't be te same one), wait for first one to be closed, try to request again (should be first port)
 
             // construct the server's address and port
             IPEndPoint endPt = new IPEndPoint(IPAddress.Parse(ADDRESS), PORT);
 
             string serviceName = "FTP Server RIP";
             ushort allocatedPort = 0;
+
+            string serviceName1 = "New Server";
 
             //Send REQUEST_PORT
             PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateREQUEST_PORT(serviceName));
@@ -173,7 +176,88 @@ namespace PRSTestClient
             allocatedPort = statusMsg.port;
             Console.WriteLine("LOOKUP_PORT returned port: " + allocatedPort.ToString());
 
+            //Send new REQUEST_PORT
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateREQUEST_PORT(serviceName1));
+
+            //Check and validate SUCCESS
+             statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                throw new Exception("TestCase1 Failed! No SUCCESS on REQUEST_PORT.");
+
+            allocatedPort = statusMsg.port;
+            Console.WriteLine("Allocated port of " + allocatedPort.ToString());
+
+            //Wait for first service to get nuked
+            Console.WriteLine("Waiting 15 seconds....");
+            System.Threading.Thread.Sleep(15000);
+            Console.WriteLine("Done Waiting!");
+
+            //Send new REQUEST_PORT again
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateREQUEST_PORT(serviceName1));
+
+            //Check and validate SUCCESS
+            statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                throw new Exception("TestCase1 Failed! No SUCCESS on REQUEST_PORT.");
+
+            allocatedPort = statusMsg.port;
+            Console.WriteLine("Allocated port of " + allocatedPort.ToString());
 
         }
+
+        private static void TestCase4(Socket clientSocket)
+        {
+            //Basic example of FTP Server from 'Assignment 1 Clarification'
+
+            // construct the server's address and port
+            IPEndPoint endPt = new IPEndPoint(IPAddress.Parse(ADDRESS), PORT);
+
+            string serviceName = "FTP Server";
+            ushort allocatedPort = 0;
+            int iterations = 5;
+
+            //Send REQUEST_PORT
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateREQUEST_PORT(serviceName));
+
+            //Check and validate SUCCESS
+            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+            PRSMessage statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                throw new Exception("TestCase1 Failed! No SUCCESS on REQUEST_PORT.");
+
+            allocatedPort = statusMsg.port;
+            Console.WriteLine("Allocated port of " + allocatedPort.ToString());
+
+            for (int i = 0; i < iterations; i++)
+            {
+                // send KEEP_ALIVE
+                PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateKEEP_ALIVE(serviceName, allocatedPort));
+
+                // check status
+                statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
+                if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                    throw new Exception("TestCase1 Failed! No SUCCESS on KeepAlive.");
+
+                //Wait 2 seconds
+                Console.WriteLine("Waiting 2 seconds....");
+                System.Threading.Thread.Sleep(2000);
+                Console.WriteLine("Done Waiting!");
+            }
+
+            // send CLOSE_PORT
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateCLOSE_PORT(serviceName, allocatedPort));
+            // Check status
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                throw new Exception("TestCase1 Failed! No SUCCESS on CLOSE_PORT.");
+
+        }
+
+        private static void TestCase5(Socket clientSocket)
+        {
+            // TODO: Test this
+            // If a client requests a port number but is unable to open that port, the client should send a PORT_DEAD message to the server.
+            // This case could happen if a client failed to send a KEEP_ALIVE message but continued to use the port.
+        }
+
     }
 }

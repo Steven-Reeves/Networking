@@ -96,22 +96,36 @@ namespace PRSServer
 
                     PRSMessage msg = PRSCommunicator.ReceiveMessage(listeningSocket, ref remoteEP);
 
-                    // Check to see if any alive Ports have died
+                    // Check to see if any alive Ports have died, or dead ports have need nuked
                     Console.WriteLine("Checking for timeouts...");
                     foreach (ManagedPort mp in ports)
                     {
-                        // If alive, check if died.
+                        // If alive, check time to mark as dead.
                         if(mp.reserved && (mp.serviceName != null))
+                        {
+                            // If time is up
+                            if ((DateTime.Now - mp.lastAlive).TotalSeconds > keepAlive)
+                            // Mark as dead
+                            {
+                                Console.WriteLine(mp.serviceName + " was marked as dead");
+                                mp.lastAlive = DateTime.Now;
+                                mp.reserved = false;
+                            }
+
+                        }
+
+                        // If dead, check time to nuke.
+                        if(!mp.reserved &&(mp.serviceName !=null))
                         {
                             // If time is up
                             if ((DateTime.Now - mp.lastAlive).TotalSeconds > keepAlive)
                             // Close service and make port available
                             {
-                                Console.WriteLine(mp.serviceName + " has died, closing port.");
+                                Console.WriteLine(mp.serviceName + " has timedout, port: " + mp.port.ToString() + " is available!");
+
                                 mp.reserved = false;
                                 mp.serviceName = null;
                             }
-
                         }
 
                     }
@@ -223,11 +237,10 @@ namespace PRSServer
 
             try
             {
-                // validate msg arguments
-                ManagedPort port = FindReservedPort(msg.serviceName, msg.port);
+                ManagedPort port = FindAnyPort(msg.serviceName, msg.port);
                 if (port != null)
                 {
-                    // update the keepalive to now
+                    // update the keepalive to now, even if port is dead
                     port.lastAlive = DateTime.Now;
                     Console.WriteLine("Service: " + port.serviceName + "lastAlive updated to: " + port.lastAlive.ToString());
                     //Send success to client, along with reserved port
@@ -291,7 +304,8 @@ namespace PRSServer
                 ManagedPort mp = FindPort(msg.port);
                 if (mp != null)
                 {
-                    //Mark Port as "dead" serviceName != null && !reserved
+                    //Mark Port as "dead" serviceName != null && !reserved and update time
+                    mp.lastAlive = DateTime.Now;
                     mp.reserved = false;
 
                     //Send success to client
@@ -321,7 +335,7 @@ namespace PRSServer
 
             try
             {
-                ManagedPort port = LookupReservedPort(msg.serviceName);
+                ManagedPort port = LookupAnyPort(msg.serviceName);
                 if (port != null)
                 {
                     //Send success to client, along with port number
@@ -366,6 +380,36 @@ namespace PRSServer
             foreach (ManagedPort mp in ports)
             {
                 if (mp.reserved && mp.serviceName == serviceName)
+                    return mp;
+            }
+
+            //None found with that service name/port
+            return null;
+        }
+
+        private static ManagedPort LookupAnyPort(string serviceName)
+        {
+            if (ports == null)
+                throw new Exception("Ports not available!");
+
+            foreach (ManagedPort mp in ports)
+            {
+                if (mp.serviceName == serviceName )
+                    return mp;
+            }
+
+            //None found with that service name/port
+            return null;
+        }
+
+        private static ManagedPort FindAnyPort(string serviceName, ushort port)
+        {
+            if (ports == null)
+                throw new Exception("Ports not available!");
+
+            foreach (ManagedPort mp in ports)
+            {
+                if (mp.serviceName == serviceName && mp.port == port)
                     return mp;
             }
 
