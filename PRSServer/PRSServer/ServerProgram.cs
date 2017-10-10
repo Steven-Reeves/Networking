@@ -23,11 +23,13 @@ namespace PRSServer
 
             public ushort port;
             public bool reserved;
+            // TODO: remove isDead, just use (!reserved and name !null)
             public bool isDead;
             public string serviceName;
             public DateTime lastAlive;
 
-            // Check if port is dead
+            // TODO: Check if port is dead
+            // TODO: Do this in main, right before checking messages
             public bool CheckDead()
             {
                 if ((DateTime.Now - lastAlive).TotalSeconds >= 300)
@@ -46,15 +48,23 @@ namespace PRSServer
             ushort endingClientPort = 40099;
             int keepAlive = 300;
 
+            // TODO: don't worry about cmd line validation
             string[] cmdArguments = Environment.GetCommandLineArgs();
             string[] validArguments = new string[4] { "-p", "-s", "-e", "-t" };
 
             Console.WriteLine("********* PRS server started *********" + "\n");
+
+            // TODO: clean this up
+            /*
+            //Old loop without input
             foreach (string s in cmdArguments)
             {
                 // If -p entered
                 if (s == validArguments[0])
+                {
+                    //servicePort = ushort.Parse(cmdArguments[s + 1]);
                     Console.WriteLine("Argument " + validArguments[0].ToString() + " entered. Service Port: " + servicePort.ToString());
+                }
                 // If -s entered
                 if (s == validArguments[1])
                     Console.WriteLine("Argument " + validArguments[1].ToString() + " entered. Starting Client Port:" + startingClientPort.ToString());
@@ -65,8 +75,27 @@ namespace PRSServer
                 if (s == validArguments[3])
                     Console.WriteLine("Argument " + validArguments[3].ToString() + " entered. Keep Alive time: " + keepAlive + " seconds.");
             }
+            */
 
-            // initialize a collection of un-reserved ports to manage
+            // TODO: Try catch here
+            for (int i = 0; i < cmdArguments.Length; i++)
+            {
+                if (cmdArguments[i] == validArguments[0])
+                    servicePort = ushort.Parse(cmdArguments[i + 1]);
+                if (cmdArguments[i] == validArguments[1])
+                    startingClientPort = ushort.Parse(cmdArguments[i + 1]);
+                if (cmdArguments[i] == validArguments[2])
+                    endingClientPort = ushort.Parse(cmdArguments[i + 1]);
+                if (cmdArguments[i] == validArguments[3])
+                    keepAlive = int.Parse(cmdArguments[i + 1]);
+            }
+
+            Console.WriteLine("Service Port: " + servicePort.ToString());
+            Console.WriteLine("Starting Client Port:" + startingClientPort.ToString());
+            Console.WriteLine("Ending Client Port:" + endingClientPort.ToString());
+            Console.WriteLine("Keep Alive time: " + keepAlive + " seconds." + "\n");
+
+            // Initialize a collection of un-reserved ports to manage
             ports = new List<ManagedPort>();
            for (ushort p = startingClientPort; p <= endingClientPort; p++)
             {
@@ -94,10 +123,10 @@ namespace PRSServer
                     // receive a message from a client
                     IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
 
-                    //Check to see if any ports died
+                    //TODO: check to see if you're dead (!reserved && name != null)
                     foreach (ManagedPort mp in ports)
                     {
-                        if(mp.CheckDead())
+                        if(mp.reserved && mp.CheckDead())
                         {
                             // Close service and make port available
                             mp.reserved = false;
@@ -106,7 +135,8 @@ namespace PRSServer
                         }
 
                     }
-                    Console.WriteLine("DEADCHECK");
+                    //Make sure ports are checked for dead
+                    //Console.WriteLine("DEADCHECK");
 
                     PRSMessage msg = PRSCommunicator.ReceiveMessage(listeningSocket, ref remoteEP);
 
@@ -286,6 +316,7 @@ namespace PRSServer
                 if (mp != null)
                 {
                     //Mark Port as dead
+                    // TODO: mark dead appropriately 
                     mp.isDead = true;
 
                     //Send success to client

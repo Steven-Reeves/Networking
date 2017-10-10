@@ -15,6 +15,7 @@ namespace PRSProtocolLibrary
             Console.WriteLine("Sending message......");
             byte[] buffer = msg.Serialize();
             int result = sock.SendTo(buffer, endPt);
+            // TODO: this is for debugging, comment out
             Console.WriteLine("Sent " + result.ToString() + " bytes: " + new string(ASCIIEncoding.UTF8.GetChars(buffer)));
         }
 
@@ -25,6 +26,7 @@ namespace PRSProtocolLibrary
             EndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
             int result = sock.ReceiveFrom(buffer, ref remoteEP);
             remoteIPEP = (IPEndPoint)remoteEP;
+            // TODO: this is for debugging, comment out
             Console.WriteLine("Received " + result.ToString() + " bytes: " + new string(ASCIIEncoding.UTF8.GetChars(buffer)));
 
             // deserialize and handle the message

@@ -24,6 +24,7 @@ namespace PRSTestClient
             try
             {
                 //Run tests
+                // TODO: test Powerpoint cases
                 //TestCase1(clientSocket); 
                 //TestCase2(clientSocket);
                 TestCase3(clientSocket);
@@ -138,7 +139,7 @@ namespace PRSTestClient
 
         private static void TestCase3(Socket clientSocket)
         {
-            //Request port and wait 350 seconds for it to die
+            //Request port and wait for it to die
             // construct the server's address and port
             IPEndPoint endPt = new IPEndPoint(IPAddress.Parse(ADDRESS), PORT);
 
