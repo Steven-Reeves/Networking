@@ -139,7 +139,8 @@ namespace PRSTestClient
 
         private static void TestCase3(Socket clientSocket)
         {
-            //Request port and wait for it to die
+            // Request port and wait for it to die, then 
+
             // construct the server's address and port
             IPEndPoint endPt = new IPEndPoint(IPAddress.Parse(ADDRESS), PORT);
 

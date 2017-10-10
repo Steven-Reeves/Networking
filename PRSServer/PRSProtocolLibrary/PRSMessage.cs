@@ -144,7 +144,6 @@ namespace PRSProtocolLibrary
             buf[MSG_TYPE_INDEX] = (byte)msgType;
 
             // copy in the service name
-            // TODO: check that the name is no more than 49 characters, to leave room for the null terminator!
             if (serviceName != null)
             {
                 byte[] nameAsBytes = ASCIIEncoding.UTF8.GetBytes(serviceName);

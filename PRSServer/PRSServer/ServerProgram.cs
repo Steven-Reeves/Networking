@@ -23,21 +23,9 @@ namespace PRSServer
 
             public ushort port;
             public bool reserved;
-            // TODO: remove isDead, just use (!reserved and name !null)
-            public bool isDead;
             public string serviceName;
             public DateTime lastAlive;
 
-            // TODO: Check if port is dead
-            // TODO: Do this in main, right before checking messages
-            public bool CheckDead()
-            {
-                if ((DateTime.Now - lastAlive).TotalSeconds >= 300)
-                    isDead = true;
-                isDead = false;
-
-                return isDead;
-            }
         }
 
         static void Main(string[] args)
@@ -48,46 +36,29 @@ namespace PRSServer
             ushort endingClientPort = 40099;
             int keepAlive = 300;
 
-            // TODO: don't worry about cmd line validation
+
             string[] cmdArguments = Environment.GetCommandLineArgs();
             string[] validArguments = new string[4] { "-p", "-s", "-e", "-t" };
 
             Console.WriteLine("********* PRS server started *********" + "\n");
 
-            // TODO: clean this up
-            /*
-            //Old loop without input
-            foreach (string s in cmdArguments)
+            try
             {
-                // If -p entered
-                if (s == validArguments[0])
+                for (int i = 0; i < cmdArguments.Length; i++)
                 {
-                    //servicePort = ushort.Parse(cmdArguments[s + 1]);
-                    Console.WriteLine("Argument " + validArguments[0].ToString() + " entered. Service Port: " + servicePort.ToString());
+                    if (cmdArguments[i] == validArguments[0])
+                        servicePort = ushort.Parse(cmdArguments[i + 1]);
+                    if (cmdArguments[i] == validArguments[1])
+                        startingClientPort = ushort.Parse(cmdArguments[i + 1]);
+                    if (cmdArguments[i] == validArguments[2])
+                        endingClientPort = ushort.Parse(cmdArguments[i + 1]);
+                    if (cmdArguments[i] == validArguments[3])
+                        keepAlive = int.Parse(cmdArguments[i + 1]);
                 }
-                // If -s entered
-                if (s == validArguments[1])
-                    Console.WriteLine("Argument " + validArguments[1].ToString() + " entered. Starting Client Port:" + startingClientPort.ToString());
-                // If -e entered
-                if (s == validArguments[2])
-                    Console.WriteLine("Argument " + validArguments[2].ToString() + " entered. Ending Client Port:" + endingClientPort.ToString());
-                // If -t entered
-                if (s == validArguments[3])
-                    Console.WriteLine("Argument " + validArguments[3].ToString() + " entered. Keep Alive time: " + keepAlive + " seconds.");
             }
-            */
-
-            // TODO: Try catch here
-            for (int i = 0; i < cmdArguments.Length; i++)
+            catch(Exception ex)
             {
-                if (cmdArguments[i] == validArguments[0])
-                    servicePort = ushort.Parse(cmdArguments[i + 1]);
-                if (cmdArguments[i] == validArguments[1])
-                    startingClientPort = ushort.Parse(cmdArguments[i + 1]);
-                if (cmdArguments[i] == validArguments[2])
-                    endingClientPort = ushort.Parse(cmdArguments[i + 1]);
-                if (cmdArguments[i] == validArguments[3])
-                    keepAlive = int.Parse(cmdArguments[i + 1]);
+                Console.WriteLine("Exception when receiving arguments: " + ex.Message);
             }
 
             Console.WriteLine("Service Port: " + servicePort.ToString());
@@ -123,22 +94,27 @@ namespace PRSServer
                     // receive a message from a client
                     IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
 
-                    //TODO: check to see if you're dead (!reserved && name != null)
+                    PRSMessage msg = PRSCommunicator.ReceiveMessage(listeningSocket, ref remoteEP);
+
+                    // Check to see if any alive Ports have died
+                    Console.WriteLine("Checking for timeouts...");
                     foreach (ManagedPort mp in ports)
                     {
-                        if(mp.reserved && mp.CheckDead())
+                        // If alive, check if died.
+                        if(mp.reserved && (mp.serviceName != null))
                         {
+                            // If time is up
+                            if ((DateTime.Now - mp.lastAlive).TotalSeconds > keepAlive)
                             // Close service and make port available
-                            mp.reserved = false;
-                            mp.serviceName = null;
-                            Console.WriteLine(mp.serviceName + " HAS DIED!");
+                            {
+                                Console.WriteLine(mp.serviceName + " has died, closing port.");
+                                mp.reserved = false;
+                                mp.serviceName = null;
+                            }
+
                         }
 
                     }
-                    //Make sure ports are checked for dead
-                    //Console.WriteLine("DEADCHECK");
-
-                    PRSMessage msg = PRSCommunicator.ReceiveMessage(listeningSocket, ref remoteEP);
 
                     // handle the message
                     PRSMessage response = null;
@@ -315,9 +291,8 @@ namespace PRSServer
                 ManagedPort mp = FindPort(msg.port);
                 if (mp != null)
                 {
-                    //Mark Port as dead
-                    // TODO: mark dead appropriately 
-                    mp.isDead = true;
+                    //Mark Port as "dead" serviceName != null && !reserved
+                    mp.reserved = false;
 
                     //Send success to client
                     response = PRSMessage.CreateRESPONSE(msg.serviceName, 0, PRSMessage.Status.SUCCESS);
@@ -433,10 +408,10 @@ namespace PRSServer
             if (ports == null)
                 throw new Exception("Ports not available!");
 
-            //Find first that's not reserved or dead
+            //Find first that's not reserved and has null name (not dead or reserved)
             foreach (ManagedPort mp in ports)
             {
-                if (!mp.reserved && !mp.isDead)
+                if (!mp.reserved && mp.serviceName == null)
                     return mp;
             }
 
