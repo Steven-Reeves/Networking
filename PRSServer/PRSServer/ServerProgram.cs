@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+ * Steven Reeves 
+ * 10/12/2017
+ * CST 415
+ * Assignment #1
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -107,6 +114,15 @@ namespace PRSServer
                             if ((DateTime.Now - mp.lastAlive).TotalSeconds > keepAlive)
                             // Mark as dead
                             {
+                                // Double check to see if past timeout
+                                if ((DateTime.Now - mp.lastAlive).TotalSeconds > (2 * keepAlive))
+                                // Close service and make port available
+                                {
+                                    Console.WriteLine(mp.serviceName + " has timedout, port: " + mp.port.ToString() + " is available!");
+
+                                    mp.reserved = false;
+                                    mp.serviceName = null;
+                                }
                                 Console.WriteLine(mp.serviceName + " was marked as dead");
                                 mp.lastAlive = DateTime.Now;
                                 mp.reserved = false;

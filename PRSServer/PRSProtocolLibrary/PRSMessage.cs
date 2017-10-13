@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+ * Steven Reeves 
+ * 10/12/2017
+ * CST 415
+ * Assignment #1
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

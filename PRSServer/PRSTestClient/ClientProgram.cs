@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+ * Steven Reeves 
+ * 10/12/2017
+ * CST 415
+ * Assignment #1
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,9 +34,8 @@ namespace PRSTestClient
                 //TestCase1(clientSocket); 
                 //TestCase2(clientSocket);
                 //TestCase3(clientSocket);
-                TestCase4(clientSocket);
-                // TODO: Run testCase5
-                //TestCase5(clientSocket);
+                //TestCase4(clientSocket);
+                TestCase5(clientSocket);
 
                 //Stop server
                 StopServer(clientSocket);
@@ -254,9 +260,55 @@ namespace PRSTestClient
 
         private static void TestCase5(Socket clientSocket)
         {
-            // TODO: Test this
             // If a client requests a port number but is unable to open that port, the client should send a PORT_DEAD message to the server.
             // This case could happen if a client failed to send a KEEP_ALIVE message but continued to use the port.
+
+            // construct the server's address and port
+            IPEndPoint endPt = new IPEndPoint(IPAddress.Parse(ADDRESS), PORT);
+
+            string serviceName = "FTP server Test1";
+            ushort allocatedPort = 0;
+
+            string serviceName1 = "FTP server Test2";
+
+            //Send REQUEST_PORT
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateREQUEST_PORT(serviceName));
+
+            //Check and validate SUCCESS
+            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
+            PRSMessage statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                throw new Exception("TestCase1 Failed! No SUCCESS on REQUEST_PORT.");
+
+            allocatedPort = statusMsg.port;
+            Console.WriteLine("Allocated port of " + allocatedPort.ToString());
+
+            Console.WriteLine("Waiting 15 seconds....");
+            System.Threading.Thread.Sleep(15000);
+            Console.WriteLine("Done Waiting!");
+
+            //Send REQUEST_PORT again
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreateREQUEST_PORT(serviceName1));
+
+            //Check and validate SUCCESS
+            statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                throw new Exception("TestCase1 Failed! No SUCCESS on REQUEST_PORT.");
+
+            //Allocated port should be the same 
+            allocatedPort = statusMsg.port;
+            Console.WriteLine("Allocated port of " + allocatedPort.ToString());
+
+            //Send PORT_DEAD to that port
+            PRSCommunicator.SendMessage(clientSocket, endPt, PRSMessage.CreatePORT_DEAD(serviceName1, allocatedPort));
+
+            //Check and validate SUCCESS
+            statusMsg = PRSCommunicator.ReceiveMessage(clientSocket, ref remoteEP);
+            if (statusMsg.status != PRSMessage.Status.SUCCESS)
+                throw new Exception("TestCase1 Failed! No SUCCESS on PORT_DEAD.");
+
+
+
         }
 
     }
