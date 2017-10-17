@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Net;
 using System.Net.Sockets;
+using System.IO;
 
 namespace FTServer
 {
@@ -21,6 +22,7 @@ namespace FTServer
             string prsIP = "127.0.0.1";     // TODO: get this from cmd line
             ushort prsPort = 30000;         // TODO: get this from cmd line
             PRSCServiceClient prs = new PRSCServiceClient(serviceName, IPAddress.Parse(prsIP), prsPort);
+            // PRSCServiceClient
             ushort listeningPort = prs.RequestPort();
 
             // create the TCP listening socket
@@ -76,7 +78,57 @@ namespace FTServer
                 byte[] buffer = new byte[256];
                 int length = clientSocket.Receive(buffer);
                 Console.WriteLine("received " + length.ToString() + " bytes from client: " + new string(ASCIIEncoding.UTF8.GetChars(buffer)));
+                if(length == 0)
+                {
 
+                }
+
+                string cmd = cmdString.Substring(0)
+                    switch(cmd)
+                {
+                    case "get":
+                        {
+                            Console.WriteLine("Recieved get from thbe client");
+
+                            Console.WriteLine("Getting files from " + directoryName);
+
+                            //Open the directory
+                            DirectoryInfo di = new DirectoryInfo(directoryName);
+
+                            // Send each file to the client
+                            foreach (var item in collection)
+                            {
+                                Console.WriteLine("");
+                                if(fi.Extension == ".txt")
+                                {
+                                    Console.WriteLine("Found TXT file: " + fi.Name);
+
+                                    // Send the file name and file length to the client
+                                    // example "File1.txt\n123\n
+                                    string msg = fi.Name + "\n" + fi.Length.ToString() + "\n";
+                                    byte[] sendbuf = ASCIIEncoding.UTF8.GetBytes(msg);
+                                    clientSocket.Send(sendbuf);
+
+                                    // Send the file contents to the client
+                                    FileStream fs = fi.OpenRead();
+                                    byte[] filebuf = new byte[fi.Length];
+                                    int result = fs.Read(filebuf, 0, (int)fi.Length);
+                                    if(result != fi.Length)
+                                    {
+                                        Console.WriteLine("Error: Only read " + result.ToString() + " bytes from the file");
+                                    }
+                                    else
+                                    {
+
+                                    }
+                                    fs.Close();
+
+                                }
+
+
+                            }
+                        }
+                }
 
                 // TODO open the directory and send the stuff!
 
