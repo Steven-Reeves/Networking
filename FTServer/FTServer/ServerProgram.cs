@@ -12,8 +12,16 @@ namespace FTServer
     {
         static void Main(string[] args)
         {
+            // TODO: Process CMD line stuff
+            // -prs <PRS IP Aaddress>:<PRS port>
+
+
             // TODO: get the listening port from the PRS for the "FT Server" service
-            ushort listeningPort = 40001;
+            string serviceName = "FT Server";
+            string prsIP = "127.0.0.1";     // TODO: get this from cmd line
+            ushort prsPort = 30000;         // TODO: get this from cmd line
+            PRSCServiceClient prs = new PRSCServiceClient(serviceName, IPAddress.Parse(prsIP), prsPort);
+            ushort listeningPort = prs.RequestPort();
 
             // create the TCP listening socket
             Socket listeningSocket = new Socket(SocketType.Stream, ProtocolType.Tcp);
@@ -39,6 +47,9 @@ namespace FTServer
             // close down the listening socket
             Console.WriteLine("Closing listening socket");
             listeningSocket.Close();
+
+            // Close the listening port from the PRS
+            prs.ClosePort();
         }
 
         class ClientThread
@@ -85,16 +96,30 @@ namespace FTServer
         }
     }
 
-    class PRSConnection
+    class PRSCServiceClient
     {
-        public PRSConnection(string serviceName, IPAddress prsAdress, ushort port)
+        public PRSCServiceClient(string serviceName, IPAddress prsAdress, ushort port)
         {
-            
+            // TODO: PRSServiceClient.PRSServiceClient()
         }
 
         public ushort RequestPort()
         {
+            // TODO: PRSServiceClient.RequestPort()
+            // After getting a port
+            // this class will keep port alive on a separate thread until closed
+        
             return 40001;
+        }
+
+        public void ClosePort()
+        {
+            // TODO: PRSServiceClient.ClosePort()
+        }
+
+        public void KeepAlive()
+        {
+            // TODO: PRSServiceClient.KeepAlive()
         }
 
 
