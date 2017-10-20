@@ -74,64 +74,77 @@ namespace FTServer
 
             private void Run()
             {
-                // get up to 256 bytes of data from the client
-                byte[] buffer = new byte[256];
-                int length = clientSocket.Receive(buffer);
-                Console.WriteLine("received " + length.ToString() + " bytes from client: " + new string(ASCIIEncoding.UTF8.GetChars(buffer)));
-                if(length == 0)
+                bool done = false;
+                while (!done && clientSocket.Connected)
                 {
+                    // get up to 256 bytes of data from the client
+                    byte[] buffer = new byte[256];
+                    int length = clientSocket.Receive(buffer);
+                    if (length <= 0)
+                    {
+                        // Just in case client is disconnected
+                        break;
+                    }
 
-                }
+                    string cmdString = new string(ASCIIEncoding.UTF8.GetChars(buffer));
+                    cmdString = cmdString.TrimEnd('\0');
+                    Console.WriteLine("Recieved " + length.ToString() + " bytes from client: " + cmdString);
 
-                string cmd = cmdString.Substring(0)
-                    switch(cmd)
-                {
-                    case "get":
-                        {
-                            Console.WriteLine("Recieved get from thbe client");
+                    string cmd = cmdString.Substring(0, cmdString.IndexOf('\n'));
 
-                            Console.WriteLine("Getting files from " + directoryName);
-
-                            //Open the directory
-                            DirectoryInfo di = new DirectoryInfo(directoryName);
-
-                            // Send each file to the client
-                            foreach (var item in collection)
+                    switch (cmd)
+                    {
+                        case "get":
                             {
-                                Console.WriteLine("");
-                                if(fi.Extension == ".txt")
+                                Console.WriteLine("Recieved get from the client");
+
+                                string directoryName = cmdString.Substring(cmdString.IndexOf('\n') + 1);
+                                directoryName  = directoryName.TrimEnd('\n');
+                                Console.WriteLine("Getting Files for directory: " + directoryName);
+
+                                //Open the directory
+                                DirectoryInfo di = new DirectoryInfo(directoryName);
+
+                                // Send each file to the client
+                                foreach (FileInfo fi in di.EnumerateFiles())
                                 {
-                                    Console.WriteLine("Found TXT file: " + fi.Name);
-
-                                    // Send the file name and file length to the client
-                                    // example "File1.txt\n123\n
-                                    string msg = fi.Name + "\n" + fi.Length.ToString() + "\n";
-                                    byte[] sendbuf = ASCIIEncoding.UTF8.GetBytes(msg);
-                                    clientSocket.Send(sendbuf);
-
-                                    // Send the file contents to the client
-                                    FileStream fs = fi.OpenRead();
-                                    byte[] filebuf = new byte[fi.Length];
-                                    int result = fs.Read(filebuf, 0, (int)fi.Length);
-                                    if(result != fi.Length)
+                                    Console.WriteLine("Found file: " + fi.Name + " in directory");
+                                    if (fi.Extension == ".txt")
                                     {
-                                        Console.WriteLine("Error: Only read " + result.ToString() + " bytes from the file");
-                                    }
-                                    else
-                                    {
+                                        Console.WriteLine("Found TXT file: " + fi.Name);
+
+                                        // Send the file name and file length to the client
+                                        // example "File1.txt\n123\n
+                                        string msg = fi.Name + "\n" + fi.Length.ToString() + "\n";
+                                        byte[] sendbuf = ASCIIEncoding.UTF8.GetBytes(msg);
+                                        clientSocket.Send(sendbuf);
+
+                                        // Send the file contents to the client
+                                        FileStream fs = fi.OpenRead();
+                                        byte[] filebuf = new byte[fi.Length];
+                                        int result = fs.Read(filebuf, 0, (int)fi.Length);
+                                        if (result != fi.Length)
+                                        {
+                                            Console.WriteLine("Error: Only read " + result.ToString() + " bytes from the file");
+                                        }
+                                        else
+                                        {
+                                            clientSocket.Send(filebuf);
+                                        }
+                                        fs.Close();
 
                                     }
-                                    fs.Close();
+
 
                                 }
-
-
                             }
-                        }
+                            break;
+                        case "exit":
+                            Console.WriteLine("Received EXIT from client");
+                            done = true;
+                            break;
+                    }
                 }
-
-                // TODO open the directory and send the stuff!
-
                 // disconnect from client and close the socket
                 Console.WriteLine("Disconnecting from client");
                 clientSocket.Disconnect(false);
