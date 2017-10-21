@@ -74,33 +74,29 @@ namespace FTServer
 
             private void Run()
             {
+                NetworkStream ns = new NetworkStream(clientSocket);
+                StreamReader reader = new StreamReader(ns);
+                StreamWriter writer = new StreamWriter(ns);
+
                 bool done = false;
                 while (!done && clientSocket.Connected)
                 {
-                    // get up to 256 bytes of data from the client
-                    byte[] buffer = new byte[256];
-                    int length = clientSocket.Receive(buffer);
-                    if (length <= 0)
+                    string cmd = reader.ReadLine();
+                    Console.WriteLine("Recieved cmd: " + cmd);
+                    if(cmd == null)
                     {
-                        // Just in case client is disconnected
+                        done = true;
                         break;
                     }
-
-                    string cmdString = new string(ASCIIEncoding.UTF8.GetChars(buffer));
-                    cmdString = cmdString.TrimEnd('\0');
-                    Console.WriteLine("Recieved " + length.ToString() + " bytes from client: " + cmdString);
-
-                    string cmd = cmdString.Substring(0, cmdString.IndexOf('\n'));
-
                     switch (cmd)
                     {
                         case "get":
                             {
                                 Console.WriteLine("Recieved get from the client");
 
-                                string directoryName = cmdString.Substring(cmdString.IndexOf('\n') + 1);
-                                directoryName  = directoryName.TrimEnd('\n');
-                                Console.WriteLine("Getting Files for directory: " + directoryName);
+                                // Read directory
+                                string directoryName = reader.ReadLine();
+                                Console.WriteLine("getting files from: " + directoryName);
 
                                 //Open the directory
                                 DirectoryInfo di = new DirectoryInfo(directoryName);
@@ -114,23 +110,18 @@ namespace FTServer
                                         Console.WriteLine("Found TXT file: " + fi.Name);
 
                                         // Send the file name and file length to the client
-                                        // example "File1.txt\n123\n
-                                        string msg = fi.Name + "\n" + fi.Length.ToString() + "\n";
-                                        byte[] sendbuf = ASCIIEncoding.UTF8.GetBytes(msg);
-                                        clientSocket.Send(sendbuf);
+                                        writer.WriteLine(fi.Name);
+                                        writer.WriteLine(fi.Length.ToString());
+                                        writer.Flush();
 
                                         // Send the file contents to the client
                                         FileStream fs = fi.OpenRead();
-                                        byte[] filebuf = new byte[fi.Length];
-                                        int result = fs.Read(filebuf, 0, (int)fi.Length);
-                                        if (result != fi.Length)
-                                        {
-                                            Console.WriteLine("Error: Only read " + result.ToString() + " bytes from the file");
-                                        }
-                                        else
-                                        {
-                                            clientSocket.Send(filebuf);
-                                        }
+
+                                        StreamReader fileReader = new StreamReader(ns);
+                                        string fileContents = fileReader.ReadToEnd();
+                                        writer.Write(fileContents);
+                                        writer.Flush();
+                                        fileReader.Close();
                                         fs.Close();
 
                                     }
@@ -148,6 +139,10 @@ namespace FTServer
                 // disconnect from client and close the socket
                 Console.WriteLine("Disconnecting from client");
                 clientSocket.Disconnect(false);
+                ns.Close();
+                writer.Close();
+                reader.Close();
+
                 clientSocket.Close();
                 Console.WriteLine("Disconnected from client");
             }
@@ -161,6 +156,8 @@ namespace FTServer
         }
     }
 
+    // TODO: Okay to turn in with STUB!
+    // Put this in the PRSProtocol Library
     class PRSCServiceClient
     {
         public PRSCServiceClient(string serviceName, IPAddress prsAdress, ushort port)
@@ -174,6 +171,13 @@ namespace FTServer
             // After getting a port
             // this class will keep port alive on a separate thread until closed
         
+            return 40001;
+        }
+
+        public ushort LookupPort()
+        {
+            // Called by client
+            // TODO: PRSServiceClient.LookupPort()
             return 40001;
         }
 
