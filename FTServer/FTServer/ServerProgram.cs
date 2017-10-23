@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+ * Steven Reeves 
+ * 10/22/2017
+ * CST 415
+ * Assignment #2
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,12 +20,42 @@ namespace FTServer
     {
         static void Main(string[] args)
         {
-            // TODO: Process CMD line stuff
-            // -prs <PRS IP Aaddress>:<PRS port>
-
             string serviceName = "FT Server";
-            string prsIP = "127.0.0.1";     // TODO: get this from cmd line
-            ushort prsPort = 30000;         // TODO: get this from cmd line
+            string prsIP = "127.0.0.1";
+            ushort prsPort = 30000;
+            string cmdPRSPort = null;
+
+            // Get info from args
+            // Args set to -prs 127.0.0.1:30000
+            for (int i = 0; i < args.Length; i++)
+            {
+                // Input was an option
+                if (args[i][0] == '-')
+                {
+                    // Input was -prs
+                    if (args[i] == "-prs")
+                    {
+                        i++;
+                        if (i >= args.Length)
+                        {
+                            Console.WriteLine("Invalid input for -prs argument. Defaults used.");
+                            prsIP = "127.0.0.2";
+                            cmdPRSPort = "30001";
+                        }
+                        string[] parts = args[i].Split(':');
+                        prsIP = parts[0];
+                        cmdPRSPort = parts[1];
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid argument used.");
+                    }
+                }
+
+            }
+
+            prsPort = ushort.Parse(cmdPRSPort);
+
             PRSCServiceClient prs = new PRSCServiceClient(serviceName, IPAddress.Parse(prsIP), prsPort);
             ushort listeningPort = prs.RequestPort();
 
@@ -154,6 +191,7 @@ namespace FTServer
 
     // Okay to turn in with stubs
     // TODO: Put this in the PRSProtocol Library
+    // TODO: Last code check/ Assignment checkoff
     class PRSCServiceClient
     {
         public PRSCServiceClient(string serviceName, IPAddress prsAdress, ushort port)

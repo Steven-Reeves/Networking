@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+ * Steven Reeves 
+ * 10/22/2017
+ * CST 415
+ * Assignment #2
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,10 +20,6 @@ namespace FTClient
     {
         static void Main(string[] args)
         {
-
-
-
-            // TODO: Check Arguments and copy to server
 
            //string serverIP = "127.0.0.1";
            //string directoryName = "foo";
@@ -54,21 +57,19 @@ namespace FTClient
                     // Input was -s
                     if (args[i] == "-s")
                     {
-                        serverIP = args[i + 1];
+                        i++;
+                        serverIP = args[i];
                     }
                     // Input was -d
                     if (args[i] == "-d")
                     {
-                        directoryName = args[i + 1];
+                        i++;
+                        directoryName = args[i];
                     }
                     else
                     {
                         Console.WriteLine("Invalid argument used.");
                     }
-                }
-                else
-                {
-                    Console.WriteLine("Unexpected value detected.");
                 }
 
             }
