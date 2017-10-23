@@ -13,16 +13,67 @@ namespace FTClient
     {
         static void Main(string[] args)
         {
-            // TODO: get the server port from the PRS for the "FT Server" service
-            // Args is an array of strings, separated by spaces
-            // Example in lecture
+
+
+
+            // TODO: Check Arguments and copy to server
+
+           //string serverIP = "127.0.0.1";
+           //string directoryName = "foo";
+           //if (args.Length > 0)
+           //directoryName = args[0];
+
+            // serverPort hard coded in due to stubbing out PRS functionality
             ushort serverPort = 40001;
-            // TODO: get the server's IP from the command line
-            string serverIP = "127.0.0.1";
-            // TODO: get the directory name from the command line
-            string directoryName = "foo";
-            if (args.Length > 0)
-                directoryName = args[0];
+            ushort PRSPort = 0;
+            string cmdPRSPort = null;
+            string cmdPRSIP = null;
+            string serverIP = null;
+            string directoryName = null;
+
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                // Input was an option
+                if (args[i][0] == '-')
+                {
+                    // Input was -prs
+                    if (args[i] == "-prs")
+                    {
+                        i++;
+                        if(i >= args.Length)
+                        {
+                            Console.WriteLine("Invalid input for -prs argument. Defaults used.");
+                            cmdPRSIP = "127.0.0.1";
+                            cmdPRSPort = "40001";
+                        }
+                        string[] parts = args[i].Split(':');
+                        cmdPRSIP = parts[0];
+                        cmdPRSPort = parts[1];
+                    }
+                    // Input was -s
+                    if (args[i] == "-s")
+                    {
+                        serverIP = args[i + 1];
+                    }
+                    // Input was -d
+                    if (args[i] == "-d")
+                    {
+                        directoryName = args[i + 1];
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid argument used.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Unexpected value detected.");
+                }
+
+            }
+
+            PRSPort = ushort.Parse(cmdPRSPort);
 
             // connect to the server on it's IP address and port
             Console.WriteLine("Connecting to server at " + serverIP + ":" + serverPort.ToString());
@@ -38,12 +89,10 @@ namespace FTClient
             // create the local directory
             Directory.CreateDirectory(directoryName);
 
-            // TODO this
             socketwriter.WriteLine("get");
             socketwriter.WriteLine(directoryName);
             socketwriter.Flush();
             Console.WriteLine("Sent get: " + directoryName);
-
 
             // Download the files that the server says are in the directory
             bool done = false;
@@ -51,7 +100,6 @@ namespace FTClient
             {
                 string cmdString = socketReader.ReadLine();
 
-                //if (cmdString.Substring(0,4) == "done")
                 if(cmdString == "done")
                 {
                     // Server is done!
@@ -70,7 +118,6 @@ namespace FTClient
                 }
             }
 
-            // TODO: Make sure you get here
             // disconnect from the server and close socket
             Console.WriteLine("Disconnecting from server");
             sock.Disconnect(false);

@@ -16,13 +16,10 @@ namespace FTServer
             // TODO: Process CMD line stuff
             // -prs <PRS IP Aaddress>:<PRS port>
 
-
-            // TODO: get the listening port from the PRS for the "FT Server" service
             string serviceName = "FT Server";
             string prsIP = "127.0.0.1";     // TODO: get this from cmd line
             ushort prsPort = 30000;         // TODO: get this from cmd line
             PRSCServiceClient prs = new PRSCServiceClient(serviceName, IPAddress.Parse(prsIP), prsPort);
-            // PRSCServiceClient
             ushort listeningPort = prs.RequestPort();
 
             // create the TCP listening socket
@@ -38,7 +35,6 @@ namespace FTServer
                 Console.WriteLine("Ready to accept new client");
                 Socket clientSocket = listeningSocket.Accept();
                 Console.WriteLine("Accepted connection from client");
-                // TODO: worry about keep alives to the PRS for our FT Server port number
 
                 // create a thread for this client, and then return to listening for more clients
                 Console.WriteLine("Launch new thread for connected client");
@@ -117,19 +113,20 @@ namespace FTServer
                                         // Send the file contents to the client
                                         FileStream fs = fi.OpenRead();
 
-                                        StreamReader fileReader = new StreamReader(ns);
+                                        StreamReader fileReader = new StreamReader(fs);
                                         string fileContents = fileReader.ReadToEnd();
                                         writer.Write(fileContents);
                                         writer.Flush();
                                         fileReader.Close();
                                         fs.Close();
-
                                     }
-
-
                                 }
+                                // Tell the client we're done!
+                                writer.WriteLine("done");
+                                writer.Flush();
                             }
                             break;
+
                         case "exit":
                             Console.WriteLine("Received EXIT from client");
                             done = true;
@@ -142,7 +139,6 @@ namespace FTServer
                 ns.Close();
                 writer.Close();
                 reader.Close();
-
                 clientSocket.Close();
                 Console.WriteLine("Disconnected from client");
             }
@@ -156,18 +152,18 @@ namespace FTServer
         }
     }
 
-    // TODO: Okay to turn in with STUB!
-    // Put this in the PRSProtocol Library
+    // Okay to turn in with stubs
+    // TODO: Put this in the PRSProtocol Library
     class PRSCServiceClient
     {
         public PRSCServiceClient(string serviceName, IPAddress prsAdress, ushort port)
         {
-            // TODO: PRSServiceClient.PRSServiceClient()
+            // PRSServiceClient.PRSServiceClient()
         }
 
         public ushort RequestPort()
         {
-            // TODO: PRSServiceClient.RequestPort()
+            // PRSServiceClient.RequestPort()
             // After getting a port
             // this class will keep port alive on a separate thread until closed
         
@@ -177,18 +173,18 @@ namespace FTServer
         public ushort LookupPort()
         {
             // Called by client
-            // TODO: PRSServiceClient.LookupPort()
+            // PRSServiceClient.LookupPort()
             return 40001;
         }
 
         public void ClosePort()
         {
-            // TODO: PRSServiceClient.ClosePort()
+            // PRSServiceClient.ClosePort()
         }
 
         public void KeepAlive()
         {
-            // TODO: PRSServiceClient.KeepAlive()
+            // PRSServiceClient.KeepAlive()
         }
 
 
