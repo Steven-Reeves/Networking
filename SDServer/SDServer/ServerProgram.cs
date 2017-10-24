@@ -2,7 +2,7 @@
  * Steven Reeves 
  * 10/22/2017
  * CST 415
- * Assignment #2
+ * Assignment #3
  */
 
 using System;
@@ -14,19 +14,21 @@ using System.Net;
 using System.Net.Sockets;
 using System.IO;
 
-namespace FTServer
+namespace SDServer
 {
     class ServerProgram
     {
         static void Main(string[] args)
         {
-            string serviceName = "FT Server";
-            string prsIP = "127.0.0.1";
-            ushort prsPort = 30000;
-            string cmdPRSPort = null;
+            string serviceName = "SD Server";
+            string prsIP = "127.0.0.2";
+            ushort prsPort = 30002;
 
-            //Current cmd args in 'Properties'
-            //-prs 127.0.0.1:30000
+            // TODO Make session table a class and thread safe
+            Dictionary<ulong, SDSession> sessionTable = new Dictionary<ulong, SDSession>();
+            ulong nextSessionId = 1;
+
+            // TODO Get correct info from args
             for (int i = 0; i < args.Length; i++)
             {
                 // Input was an option
@@ -39,12 +41,25 @@ namespace FTServer
                         if (i >= args.Length)
                         {
                             Console.WriteLine("Invalid input for -prs argument. Defaults used.");
-                            prsIP = "127.0.0.2";
-                            cmdPRSPort = "30001";
                         }
                         string[] parts = args[i].Split(':');
                         prsIP = parts[0];
-                        cmdPRSPort = parts[1];
+                        prsPort = ushort.Parse(parts[1]);
+                    }
+                    // Input was ...
+                    if (args[i] == "...")
+                    {
+
+                    }
+                    // Input was ...
+                    if (args[i] == "...")
+                    {
+
+                    }
+                    // Input was ...
+                    if (args[i] == "...")
+                    {
+
                     }
                     else
                     {
@@ -53,8 +68,6 @@ namespace FTServer
                 }
 
             }
-
-            prsPort = ushort.Parse(cmdPRSPort);
 
             PRSCServiceClient prs = new PRSCServiceClient(serviceName, IPAddress.Parse(prsIP), prsPort);
             ushort listeningPort = prs.RequestPort();
@@ -91,11 +104,79 @@ namespace FTServer
         {
             private Thread theThread;
             private Socket clientSocket;
+            private SDSession session;
+            // TODO check this
+            private State currentState;
+
+            // State pattern
+            abstract class State
+            {
+                public abstract void HandleOpenCmd();
+                public abstract void HandleResumeCmd(ulong sessionId);
+                public abstract void HandleCloseCmd(ulong sessionId);
+                public abstract void HandleGetCmd();
+                public abstract void HandlePostCmd();
+
+                protected void SendError (string msg)
+                {
+
+                }
+            }
+
+            class ReadyForSessionCmd : State
+            {
+                public override void HandleOpenCmd()
+                {
+
+                }
+                public override void HandleResumeCmd(ulong sessionId)
+                {
+
+                }
+                public override void HandleCloseCmd(ulong sessionId)
+                {
+                    
+                }
+                public override void HandleGetCmd()
+                {
+                    SendError("No session open");
+                }
+                public override void HandlePostCmd()
+                {
+                    SendError("No session open");
+                }
+            }
+
+            class ReadyForDocumentCmd : State
+            {
+                public override void HandleOpenCmd()
+                {
+                    SendError("Session already open!");
+                }
+                public override void HandleResumeCmd(ulong sessionId)
+                {
+                    SendError("Session already open!");
+                }
+                public override void HandleCloseCmd(ulong sessionId)
+                {
+
+                }
+                public override void HandleGetCmd()
+                {
+
+                }
+                public override void HandlePostCmd()
+                {
+
+                }
+            }
 
             public ClientThread(Socket clientSocket)
             {
                 this.clientSocket = clientSocket;
                 theThread = new Thread(new ParameterizedThreadStart(ClientThreadFunc));
+                session = null;
+                currentState = null;
             }
 
             public void Start()
@@ -111,18 +192,33 @@ namespace FTServer
                 StreamReader reader = new StreamReader(ns);
                 StreamWriter writer = new StreamWriter(ns);
 
+                currentState = new ReadyForSessionCmd();
+
                 bool done = false;
                 while (!done && clientSocket.Connected)
                 {
                     string cmd = reader.ReadLine();
-                    Console.WriteLine("Recieved cmd: " + cmd);
-                    if(cmd == null)
+                    if (cmd == null)
                     {
                         done = true;
                         break;
                     }
+                    Console.WriteLine("Recieved cmd: " + cmd);
                     switch (cmd)
                     {
+                        case "open":
+                            currentState.HandleOpenCmd();
+                            break;
+                        case "resume":
+                            {
+                                // Parse sessionId
+                                ulong sessionId = 0;
+                                if (currentState.HandleResumeCmd(sessionId))
+                                    currentState = new ReadyForSessionCmd();
+                                //else
+                                    // something else
+                            }
+                           break;
                         case "get":
                             {
                                 Console.WriteLine("Recieved get from the client");
@@ -188,7 +284,30 @@ namespace FTServer
             }
         }
     }
+    class SDSession
+    {
+        private ulong sessionId;
+        private Dictionary<string, string> sessionValues;
 
+        public SDSession(ulong sessionId)
+        {
+            this.sessionId = sessionId;
+            sessionValues = new Dictionary<string, string>();
+
+            void PutValue(string name, string value)
+            {
+                sessionValues[name] = value;
+            }
+
+            string GetValue(string name)
+            {
+                if (sessionValues.ContainsKey(name))
+                    throw new Exception("Unknown Value " + name);
+                return sessionValues[name];
+            }
+
+        }
+    }
     // Okay to turn in with stubs
     class PRSCServiceClient
     {
@@ -202,15 +321,15 @@ namespace FTServer
             // PRSServiceClient.RequestPort()
             // After getting a port
             // this class will keep port alive on a separate thread until closed
-        
-            return 40001;
+
+            return 40002;
         }
 
         public ushort LookupPort()
         {
             // Called by client
             // PRSServiceClient.LookupPort()
-            return 40001;
+            return 40002;
         }
 
         public void ClosePort()
@@ -226,3 +345,4 @@ namespace FTServer
 
     }
 }
+

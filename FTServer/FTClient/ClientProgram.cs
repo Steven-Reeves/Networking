@@ -21,18 +21,19 @@ namespace FTClient
         static void Main(string[] args)
         {
 
-           //string serverIP = "127.0.0.1";
-           //string directoryName = "foo";
-           //if (args.Length > 0)
-           //directoryName = args[0];
+            //Current cmd args in 'Properties'
+            //-prs 127.0.0.1:40002 -s 127.0.0.1 -d foo
 
-            // serverPort hard coded in due to stubbing out PRS functionality
+            string serviceName = "FT Client";
+            string serverName = "FT Server";
+            // Defualt serverPort
             ushort serverPort = 40001;
             ushort PRSPort = 0;
             string cmdPRSPort = null;
-            string cmdPRSIP = null;
+            string PRSIP = "127.0.0.1";
             string serverIP = null;
-            string directoryName = null;
+            // Default directory name
+            string directoryName = "foo";
 
 
             for (int i = 0; i < args.Length; i++)
@@ -47,11 +48,10 @@ namespace FTClient
                         if(i >= args.Length)
                         {
                             Console.WriteLine("Invalid input for -prs argument. Defaults used.");
-                            cmdPRSIP = "127.0.0.1";
                             cmdPRSPort = "40001";
                         }
                         string[] parts = args[i].Split(':');
-                        cmdPRSIP = parts[0];
+                        PRSIP = parts[0];
                         cmdPRSPort = parts[1];
                     }
                     // Input was -s
@@ -75,6 +75,10 @@ namespace FTClient
             }
 
             PRSPort = ushort.Parse(cmdPRSPort);
+
+            // Lookup serverPort with PRS stub
+            PRSCServiceClient prs = new PRSCServiceClient(serviceName, IPAddress.Parse(PRSIP), PRSPort);
+            serverPort = prs.LookupPort(serverName);
 
             // connect to the server on it's IP address and port
             Console.WriteLine("Connecting to server at " + serverIP + ":" + serverPort.ToString());
@@ -128,5 +132,42 @@ namespace FTClient
             sock.Close();
             Console.WriteLine("Disconnected from server");
         }
+    }
+
+    // Okay to turn in with stubs
+    class PRSCServiceClient
+    {
+        public PRSCServiceClient(string serviceName, IPAddress prsAdress, ushort port)
+        {
+            // PRSServiceClient.PRSServiceClient()
+        }
+
+        public ushort RequestPort()
+        {
+            // PRSServiceClient.RequestPort()
+            // After getting a port
+            // this class will keep port alive on a separate thread until closed
+
+            return 40001;
+        }
+
+        public ushort LookupPort(string serviceName)
+        {
+            // Called by client
+            // PRSServiceClient.LookupPort()
+            return 40001;
+        }
+
+        public void ClosePort()
+        {
+            // PRSServiceClient.ClosePort()
+        }
+
+        public void KeepAlive()
+        {
+            // PRSServiceClient.KeepAlive()
+        }
+
+
     }
 }
