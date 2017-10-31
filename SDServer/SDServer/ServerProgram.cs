@@ -69,7 +69,7 @@ namespace SDServer
             PRSServiceClient.prsAddress = IPAddress.Parse(prsIP);
             PRSServiceClient.prsPort = prsPort;
             PRSServiceClient prs = new PRSServiceClient(serviceName);
-            ushort listeningPort = prs.RequestPort();
+            ushort listeningPort = 40001; // TODO: reconnect this prs.RequestPort();
 
             // create the TCP listening socket
             Socket listeningSocket = new Socket(SocketType.Stream, ProtocolType.Tcp);
@@ -132,6 +132,8 @@ namespace SDServer
                 {
                     socketWriter.WriteLine("error");
                     socketWriter.WriteLine(errorMsg);
+                    // TODO: check this flush
+                    socketWriter.Flush();
                 }
             }
 
@@ -146,10 +148,14 @@ namespace SDServer
                 {
                     // create a new session for the client
                     SDSession session = sessionTable.NewSession();
+                    Console.WriteLine("Opened new session with id " + session.ID.ToString());
 
                     // send Accepted(sessionId)
                     socketWriter.WriteLine("accepted");
                     socketWriter.WriteLine(session.ID.ToString());
+                    socketWriter.Flush();
+                    // TODO this
+                    Console.WriteLine("Sent accepted id = " + session.ID + " to client");
 
                     return session;
                 }
@@ -302,7 +308,7 @@ namespace SDServer
                         case "get":
                             {
                                 Console.WriteLine("Received GET cmd from client");
-                                currentState.HandleGetCmd();
+                                currentState.HandleGetCmd(session);
 
                             }
                             break;
