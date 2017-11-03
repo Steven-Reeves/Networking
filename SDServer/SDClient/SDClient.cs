@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
 using System.IO;
+using PRSProtocolLibrary;
 
 namespace SDClient
 {
@@ -20,94 +21,133 @@ namespace SDClient
     {
         // TODO: add these for arg parsing
         static bool OPEN_SESSION = false;
+        static bool RESUME_SESSION = false;
+        static bool CLOSE_SESSION = false;
+        static bool GET = false;
+        static bool POST = false;
+        static string PRSIP = "127.0.0.1";
+        static ushort PRSPort = 30000;
+        static string serviceName = "SD Server";
+        static string serverIP = "127.0.0.1";
+        static string documentName = null;
 
         static void Main(string[] args)
         {
 
-            //Current cmd args in 'Properties'
-            //-prs 127.0.0.1:40002 -s 127.0.0.1 -d foo
+            // Current cmd args in 'Properties'
+            // TODO: Check for cmd args
 
-            string serviceName = "FT Client";
-            string serverName = "FT Server";
+
+            // TODO: Added these to static
+            //string serviceName = "FT Client";
             // Defualt serverPort
-            ushort serverPort = 40001;
-            ushort PRSPort = 0;
-            string cmdPRSPort = null;
-            string PRSIP = "127.0.0.1";
-            string serverIP = null;
+            //ushort PRSPort = 30000;
+            //string PRSIP = "127.0.0.1";
             // Default directory name
-            string directoryName = "foo";
+            //string directoryName = "foo";
+            //string serverIP = null;
+            //ushort serverPort = 40001;
+            //string serverName = "FT Server";
 
             // TODO: Add PRS protocol library, like in assignement 2
 
-            // TODO: check all of these "else if"?
-            for (int i = 0; i < args.Length; i++)
+            // TODO: check all of these
+            try
             {
-                // Input was an option
-                if (args[i][0] == '-')
+                /* Parse these arguments
+                -prs <PRS IP address>:<PRS port>
+                -s <SD server IP address>
+		        -o | -r <session id> | -c <session id>
+                [-get <document> | -post <document>]
+                 */
+
+                for (int i = 0; i < args.Length; i++)
                 {
-                    // Input was -prs
-                    if (args[i] == "-prs")
+                    // Input was an option
+                    if (args[i][0] == '-')
                     {
-                        i++;
-                        if (i >= args.Length)
+                        // Input was -prs
+                        if (args[i] == "-prs")
                         {
-                            Console.WriteLine("Invalid input for -prs argument. Defaults used.");
-                            cmdPRSPort = "40001";
+                            if (++i < args.Length)
+                            {
+                                string[] parts = args[i].Split(':');
+                                if(parts.Length !=2)
+                                    throw new Exception ("Unexpected value for -prs argument.");
+                                PRSIP = parts[0];
+                                PRSPort = System.Convert.ToUInt16(parts[1]);
+                            }
+                            else
+                                throw new Exception("No value for -prs argument!");
                         }
-                        string[] parts = args[i].Split(':');
-                        PRSIP = parts[0];
-                        cmdPRSPort = parts[1];
-                    }
-                    // Input was -s
-                    if (args[i] == "-s")
-                    {
-                        i++;
-                        serverIP = args[i];
-                    }
-                    // Input was -o
-                    if (args[i] == "-o")
-                    {
-                        i++;
-                        directoryName = args[i];
-                    }
-                    // Input was -r <session id>
-                    if (args[i] == "-d")
-                    {
-                        i++;
-                        directoryName = args[i];
-                    }
-                    // Input was -c <session id>
-                    if (args[i] == "-d")
-                    {
-                        i++;
-                        directoryName = args[i];
-                    }
-                    // Input was -get 
-                    if (args[i] == "-d")
-                    {
-                        i++;
-                        directoryName = args[i];
-                    }
-                    // Input was -POST 
-                    if (args[i] == "-d")
-                    {
-                        i++;
-                        directoryName = args[i];
-                    }
-                    else
-                    {
-                        Console.WriteLine("Invalid argument used.");
+                        // Input was -s
+                       else if (args[i] == "-s")
+                        {
+                            if (++i < args.Length)
+                            {
+                                serverIP = args[i];
+                            }
+                            else
+                            {
+                                throw new Exception("No value for -s argument!");
+                            }
+                        }
+                        // Input was -o
+                        else if(args[i] == "-o")
+                        {
+                            OPEN_SESSION = true;
+                        }
+                        // Input was -r <session id>
+                        else if(args[i] == "-r")
+                        {
+                            // TODO: resume existing session
+                        }
+                        // Input was -c <session id>
+                        else if (args[i] == "-c")
+                        {
+                            CLOSE_SESSION = true;
+                            // TODO: get session id
+                        }
+                        // Input was -get 
+                        else if(args[i] == "-get")
+                        {
+                            GET = true;
+                            if (++i < args.Length)
+                            {
+                                documentName = args[i];
+                            }
+                            else
+                            {
+                                throw new Exception("No value for -get argument!");
+                            }
+                        }
+                        // Input was -POST 
+                        else if(args[i] == "-post")
+                        {
+                            POST = true;
+                            if (++i < args.Length)
+                            {
+                                documentName = args[i];
+                            }
+                            else
+                            {
+                                throw new Exception("No value for -post argument!");
+                            }
+                        }
+                        else
+                            throw new Exception("Unknown argument: " + args[i]);
                     }
                 }
-
             }
-
-            PRSPort = ushort.Parse(cmdPRSPort);
+            catch(Exception ex)
+            {
+                Console.WriteLine("Error processiong command arguments: " + ex.Message);
+                return;
+            }
 
             // Lookup serverPort with PRS stub
             PRSCServiceClient prs = new PRSCServiceClient(serviceName, IPAddress.Parse(PRSIP), PRSPort);
-            serverPort = prs.LookupPort(serverName);
+            ushort serverPort = prs.LookupPort(serviceName);
 
             // connect to the server on it's IP address and port
             Console.WriteLine("Connecting to server at " + serverIP + ":" + serverPort.ToString());
@@ -120,106 +160,103 @@ namespace SDClient
             StreamReader socketReader = new StreamReader(socketNetworkStream);
             StreamWriter socketwriter = new StreamWriter(socketNetworkStream);
 
-            // SD Client to do all the cool things
-
-            // Open a new sesion with the server
-            Console.WriteLine("Sending OPEN to server");
-            socketwriter.WriteLine("open");
-            socketwriter.Flush();
-
-            // recieve accept from server
+            // Open or resume session
             ulong sessionID = 0;
-            string responseString = socketReader.ReadLine();
-            if(responseString == "accepted")
+            string responseString;
+            if (OPEN_SESSION)
             {
-                Console.WriteLine("Server Accepted new request");
+                // Open a new sesion with the server
+                Console.WriteLine("Sending OPEN to server");
+                socketwriter.WriteLine("open");
+                socketwriter.Flush();
+
+                // recieve accept from server
+
                 responseString = socketReader.ReadLine();
-                sessionID = System.Convert.ToUInt64(responseString);
-                Console.WriteLine("Recieved sessionID = " + sessionID.ToString());
-
-
-            }
-            else
-            {
-                Console.WriteLine("Recieved invalid response" + responseString);
-            }
-
-            // Send a get "foo"
-            // TODO: actually get this name
-            string documentName = "foo";
-            Console.WriteLine("Sending GET to server for document " + documentName);
-            socketwriter.WriteLine("get");
-            socketwriter.WriteLine(documentName);
-            socketwriter.Flush();
-
-            if (responseString == "success")
-            {
-                Console.WriteLine("Success!");
-                responseString = socketReader.ReadLine();
-                if(responseString == documentName)
+                if (responseString == "accepted")
                 {
-                    Console.WriteLine("Recieved expected docment name " + documentName);
+                    Console.WriteLine("Server Accepted new request");
                     responseString = socketReader.ReadLine();
-                    int length = System.Convert.ToInt32(responseString);
-                    Console.WriteLine("Recieved length " + length);
-
-                    // TODO recieve contents
-
+                    sessionID = System.Convert.ToUInt64(responseString);
+                    Console.WriteLine("Received sessionID = " + sessionID.ToString());
                 }
                 else
                 {
-                    Console.WriteLine("Recieved unexpected docment name!");
+                    Console.WriteLine("Received invalid response" + responseString);
                 }
-                sessionID = System.Convert.ToUInt64(responseString);
-                Console.WriteLine("Recieved sessionID = " + sessionID.ToString());
-
-
             }
-            else if (responseString == "error")
+
+            if(RESUME_SESSION)
             {
+                // TODO: Resume session
+            }
+
+            // Perform Get/Post
+            if (GET)
+            {
+
+                // TODO: remove this line after testing
+                //documentName = "foo";
+
+                Console.WriteLine("Sending GET to server for document " + documentName);
+                socketwriter.WriteLine("get");
+                socketwriter.WriteLine(documentName);
+                socketwriter.Flush();
+
+                // Recieve response for GET
                 responseString = socketReader.ReadLine();
-                Console.WriteLine("Recieved error from server: " + responseString);
-            }
-            else
-            {
-                Console.WriteLine("Recieved invalid response" + responseString);
-            }
-
-            // TODO: POST
-
-            // TODO: CLOSE
-
-
-            /*
-            socketwriter.WriteLine("get");
-            socketwriter.WriteLine(directoryName);
-            socketwriter.Flush();
-            Console.WriteLine("Sent get: " + directoryName);
-
-            // Download the files that the server says are in the directory
-            bool done = false;
-            while (!done)
-            {
-                string cmdString = socketReader.ReadLine();
-
-                if (cmdString == "done")
+                if (responseString == "success")
                 {
-                    // Server is done!
-                    done = true;
+                    Console.WriteLine("Success!");
+                    responseString = socketReader.ReadLine();
+                    if (responseString == documentName)
+                    {
+                        Console.WriteLine("Recieved expected docment name " + documentName);
+                        responseString = socketReader.ReadLine();
+                        int length = System.Convert.ToInt32(responseString);
+                        Console.WriteLine("Recieved length " + length);
+
+                        char[] buffer = new char[length];
+                        int result = socketReader.Read(buffer, 0, length);
+                        if (result == length)
+                        {
+                            string documentContents = new string(buffer);
+                            Console.WriteLine("Received " + result.ToString() + " bytes of content, as follows...");
+                            Console.WriteLine(documentContents);
+                        }
+                        else
+                            Console.WriteLine("Error, received wrong number of bytes");
+
+                    }
+                    else
+                    {
+                        Console.WriteLine("Recieved unexpected docment name!");
+                    }
+                    sessionID = System.Convert.ToUInt64(responseString);
+                    Console.WriteLine("Recieved sessionID = " + sessionID.ToString());
+
+                }
+                else if (responseString == "error")
+                {
+                    responseString = socketReader.ReadLine();
+                    Console.WriteLine("Recieved error from server: " + responseString);
                 }
                 else
                 {
-                    string filename = cmdString;
-                    string lengthstring = socketReader.ReadLine();
-                    int filelength = System.Convert.ToInt32(lengthstring);
-
-                    char[] buffer = new char[filelength];
-                    socketReader.Read(buffer, 0, filelength);
-                    string fileContents = new string(buffer);
-                    File.WriteAllText(Path.Combine(directoryName, filename), fileContents);
+                    Console.WriteLine("Recieved invalid response" + responseString);
                 }
             }
-            */
+
+            if (POST)
+            {
+                // TODO: POST
+            }
+
+            if (CLOSE_SESSION)
+            {
+                // TODO: CLOSE
+            }
+
             // disconnect from the server and close socket
             Console.WriteLine("Disconnecting from server");
             sock.Disconnect(false);
@@ -231,7 +268,7 @@ namespace SDClient
         }
     }
 
-    // Okay to turn in with stubs
+    // Okay to turn in with stubs TODO: check if this is okay for Assignment 3
     class PRSCServiceClient
     {
         public PRSCServiceClient(string serviceName, IPAddress prsAdress, ushort port)

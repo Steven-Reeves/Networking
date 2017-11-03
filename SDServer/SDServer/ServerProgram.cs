@@ -13,53 +13,44 @@ namespace SDServer
     {
         static void Main(string[] args)
         {
-            // process cmd line
-            // -prs <PRS IP address>:<PRS port>
-
             // get the listening port from the PRS for the "SD Server" service
             string serviceName = "SD Server";
             string prsIP = "127.0.0.1";
             ushort prsPort = 30000;
 
-            // TODO Get correct info from args
-            for (int i = 0; i < args.Length; i++)
+            // TODO: Test argument parsing
+            try
             {
-                // Input was an option
-                if (args[i][0] == '-')
+                for (int i = 0; i < args.Length; i++)
                 {
-                    // Input was -prs
-                    if (args[i] == "-prs")
+                    // Input was an option
+                    if (args[i][0] == '-')
                     {
-                        i++;
-                        if (i >= args.Length)
+                        // Input was -prs
+                        // -prs <PRS IP address>:<PRS port>
+                        if (args[i] == "-prs")
                         {
-                            Console.WriteLine("Invalid input for -prs argument. Defaults used.");
+                            if (++i < args.Length)
+                            {
+                                string[] parts = args[i].Split(':');
+                                if (parts.Length != 2)
+                                    throw new Exception("Unexpected value for -prs argument.");
+                                prsIP = parts[0];
+                                prsPort = System.Convert.ToUInt16(parts[1]);
+                            }
+                            else
+                                throw new Exception("No value for -prs argument!");
                         }
-                        string[] parts = args[i].Split(':');
-                        prsIP = parts[0];
-                        prsPort = ushort.Parse(parts[1]);
+                        else
+                            throw new Exception("Unknown argument: " + args[i]);
                     }
-                    // TODO Input was ...
-                    if (args[i] == "...")
-                    {
 
-                    }
-                    // RODO Input was ...
-                    if (args[i] == "...")
-                    {
-
-                    }
-                    // Input was ...
-                    if (args[i] == "...")
-                    {
-
-                    }
-                    else
-                    {
-                        Console.WriteLine("Invalid argument used.");
-                    }
                 }
-
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error processiong command arguments: " + ex.Message);
+                return;
             }
 
             // create the session table
@@ -132,7 +123,6 @@ namespace SDServer
                 {
                     socketWriter.WriteLine("error");
                     socketWriter.WriteLine(errorMsg);
-                    // TODO: check this flush
                     socketWriter.Flush();
                 }
             }
@@ -154,8 +144,7 @@ namespace SDServer
                     socketWriter.WriteLine("accepted");
                     socketWriter.WriteLine(session.ID.ToString());
                     socketWriter.Flush();
-                    // TODO this
-                    Console.WriteLine("Sent accepted id = " + session.ID + " to client");
+                    Console.WriteLine("Sent accepted id = " + session.ID.ToString() + " to client");
 
                     return session;
                 }

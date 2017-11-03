@@ -48,5 +48,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\PRSServer\PRSProtocolLibrary\PRSProtocolLibrary.csproj">
+      <Project>{05db1235-cb71-4ca5-97b6-988354107418}</Project>
+      <Name>PRSProtocolLibrary</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
