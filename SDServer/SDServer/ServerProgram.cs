@@ -105,6 +105,7 @@ namespace SDServer
                 protected StreamReader socketReader;
                 protected StreamWriter socketWriter;
 
+                // TODO: refactor this from Lab on Saturday, derived classes as well
                 public State(SessionTable sessionTable, NetworkStream socketNetworkStream, StreamReader socketReader, StreamWriter socketWriter)
                 {
                     this.sessionTable = sessionTable;
@@ -278,7 +279,7 @@ namespace SDServer
 
                         case "resume":
                             {
-                                // parse out the sessionId
+                                // TODO: parse out the sessionId in lab
                                 ulong sessionId = 0;
                                 session = currentState.HandleResumeCmd(sessionId);
                                 if (session != null)
@@ -302,6 +303,12 @@ namespace SDServer
                             }
                             break;
 
+                        case "post":
+                            {
+                                // TODO: this,  in lab saturday
+
+                                break;
+                            }
                         case "exit":
                             Console.WriteLine("Received EXIT cmd from client");
                             done = true;
@@ -376,6 +383,8 @@ namespace SDServer
         }
     }
 
+
+    // Stubbed out is okay for Assignment 3
     class PRSServiceClient
     {
         public static IPAddress prsAddress;

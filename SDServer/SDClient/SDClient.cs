@@ -20,6 +20,8 @@ namespace SDClient
     class ClientProgram
     {
         // TODO: add these for arg parsing
+        // TODO: Readme for stubbing and such.
+
         static bool OPEN_SESSION = false;
         static bool RESUME_SESSION = false;
         static bool CLOSE_SESSION = false;
@@ -29,6 +31,7 @@ namespace SDClient
         static ushort PRSPort = 30000;
         static string serviceName = "SD Server";
         static string serverIP = "127.0.0.1";
+        static ulong SESSION_ID = 0;
         static string documentName = null;
 
         static void Main(string[] args)
@@ -48,8 +51,6 @@ namespace SDClient
             //string serverIP = null;
             //ushort serverPort = 40001;
             //string serverName = "FT Server";
-
-            // TODO: Add PRS protocol library, like in assignement 2
 
             // TODO: check all of these
             try
@@ -100,7 +101,14 @@ namespace SDClient
                         // Input was -r <session id>
                         else if(args[i] == "-r")
                         {
-                            // TODO: resume existing session
+                            // TODO: resume existing session (in lab begining)
+                            RESUME_SESSION = true;
+                            /*
+                            if (++i < args.Length)
+                            {
+                                SESSION_ID = args[i];
+                            }
+                            */
                         }
                         // Input was -c <session id>
                         else if (args[i] == "-c")
@@ -160,8 +168,10 @@ namespace SDClient
             StreamReader socketReader = new StreamReader(socketNetworkStream);
             StreamWriter socketwriter = new StreamWriter(socketNetworkStream);
 
-            // Open or resume session
+            // Open or resume session 
+            // TODO: get this from command line
             ulong sessionID = 0;
+
             string responseString;
             if (OPEN_SESSION)
             {
@@ -185,11 +195,21 @@ namespace SDClient
                     Console.WriteLine("Received invalid response" + responseString);
                 }
             }
-
-            if(RESUME_SESSION)
+            // TODO: Resume session
+            /*
+            if (RESUME_SESSION)
             {
                 // TODO: Resume session
+                Console.WriteLine("Sending RESUME to server for document " + documentName);
+                socketwriter.WriteLine("resume");
+                socketwriter.WriteLine(RESUME_SESSION_ID.ToString());
+                socketwriter.Flush();
+
+                // TODO: receive accept from server
+                responseString = socketReader.ReadLine();
+
             }
+            */
 
             // Perform Get/Post
             if (GET)
@@ -203,7 +223,7 @@ namespace SDClient
                 socketwriter.WriteLine(documentName);
                 socketwriter.Flush();
 
-                // Recieve response for GET
+                // Receive response for GET
                 responseString = socketReader.ReadLine();
                 if (responseString == "success")
                 {
@@ -268,7 +288,7 @@ namespace SDClient
         }
     }
 
-    // Okay to turn in with stubs TODO: check if this is okay for Assignment 3
+    // This is okay for Assignment 3
     class PRSCServiceClient
     {
         public PRSCServiceClient(string serviceName, IPAddress prsAdress, ushort port)
