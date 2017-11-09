@@ -11,14 +11,15 @@ namespace SDServer
 {
     class ServerProgram
     {
+        static string serviceName = "SD Server";
+        static string prsIP = "127.0.0.1";
+        static ushort prsPort = 30000;
+        static int CLIENT_BACKLOG = 42;
+
         static void Main(string[] args)
         {
-            // get the listening port from the PRS for the "SD Server" service
-            string serviceName = "SD Server";
-            string prsIP = "127.0.0.1";
-            ushort prsPort = 30000;
-
             // TODO: Test argument parsing
+
             try
             {
                 for (int i = 0; i < args.Length; i++)
@@ -53,6 +54,11 @@ namespace SDServer
                 return;
             }
 
+            // Show variables
+            Console.WriteLine("PRS Address: " + prsIP.ToString());
+            Console.WriteLine("PRS Port: " + prsPort.ToString());
+            Console.WriteLine("///////////////");
+
             // create the session table
             SessionTable sessionTable = new SessionTable();
             
@@ -60,12 +66,12 @@ namespace SDServer
             PRSServiceClient.prsAddress = IPAddress.Parse(prsIP);
             PRSServiceClient.prsPort = prsPort;
             PRSServiceClient prs = new PRSServiceClient(serviceName);
-            ushort listeningPort = 40001; // TODO: reconnect this prs.RequestPort();
+            ushort listeningPort = prs.RequestPort(); 
 
             // create the TCP listening socket
             Socket listeningSocket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             listeningSocket.Bind(new IPEndPoint(IPAddress.Any, listeningPort));
-            listeningSocket.Listen(42);     // 42 is the number of clients that can be waiting for us to accept their connection
+            listeningSocket.Listen(CLIENT_BACKLOG); 
             Console.WriteLine("Listening for clients on port " + listeningPort.ToString());
 
             bool done = false;
@@ -93,80 +99,111 @@ namespace SDServer
         class ClientThread
         {
             private Thread theThread;
+
             private Socket clientSocket;
+            private NetworkStream socketNetworkStream;
+            private StreamReader socketReader;
+            private StreamWriter socketWriter;
+
             private SessionTable sessionTable;
             private SDSession session;
+
             private State currentState;
 
             abstract class State
             {
-                protected SessionTable sessionTable;
-                protected NetworkStream socketNetworkStream;
-                protected StreamReader socketReader;
-                protected StreamWriter socketWriter;
+                protected ClientThread client;
 
-                // TODO: refactor this from Lab on Saturday, derived classes as well
-                public State(SessionTable sessionTable, NetworkStream socketNetworkStream, StreamReader socketReader, StreamWriter socketWriter)
+                public State(ClientThread client)
                 {
-                    this.sessionTable = sessionTable;
-                    this.socketNetworkStream = socketNetworkStream;
-                    this.socketReader = socketReader;
-                    this.socketWriter = socketWriter;
+                    this.client = client;
                 }
 
                 public abstract SDSession HandleOpenCmd();
-                public abstract SDSession HandleResumeCmd(ulong sessionId);
-                public abstract void HandleCloseCmd(ulong sessionId);
+                public abstract SDSession HandleResumeCmd();
+                public abstract void HandleCloseCmd(SDSession session);
                 public abstract void HandleGetCmd(SDSession session);
-                public abstract void HandlePostCmd();
+                public abstract void HandlePostCmd(SDSession session);
 
                 protected void SendError(string errorMsg)
                 {
-                    socketWriter.WriteLine("error");
-                    socketWriter.WriteLine(errorMsg);
-                    socketWriter.Flush();
+                    client.socketWriter.WriteLine("error");
+                    client.socketWriter.WriteLine(errorMsg);
+                    client.socketWriter.Flush();
                 }
             }
 
             class ReadyForSessionCmd : State
             {
-                public ReadyForSessionCmd(SessionTable sessionTable, NetworkStream socketNetworkStream, StreamReader socketReader, StreamWriter socketWriter) :
-                    base (sessionTable, socketNetworkStream, socketReader, socketWriter)
+                public ReadyForSessionCmd(ClientThread client) : base (client)
                 {
                 }
 
                 override public SDSession HandleOpenCmd()
                 {
                     // create a new session for the client
-                    SDSession session = sessionTable.NewSession();
+                    SDSession session = client.sessionTable.NewSession();
                     Console.WriteLine("Opened new session with id " + session.ID.ToString());
 
                     // send Accepted(sessionId)
-                    socketWriter.WriteLine("accepted");
-                    socketWriter.WriteLine(session.ID.ToString());
-                    socketWriter.Flush();
+                    client.socketWriter.WriteLine("accepted");
+                    client.socketWriter.WriteLine(session.ID.ToString());
+                    client.socketWriter.Flush();
                     Console.WriteLine("Sent accepted id = " + session.ID.ToString() + " to client");
 
                     return session;
                 }
 
-                public override SDSession HandleResumeCmd(ulong sessionId)
+                public override SDSession HandleResumeCmd()
                 {
-                    return null;
+                    // Get requested session id to resume
+                    string requestString = client.socketReader.ReadLine();
+                    ulong requestedSessionID = System.Convert.ToUInt64(requestString);
+
+                    // find the requested session for the client
+                    SDSession session = client.sessionTable.Lookup(requestedSessionID);
+                    if (session != null)
+                    {
+                        Console.WriteLine("Resuming new session with id " + session.ID.ToString());
+
+                        // send Accepted(sessionId)
+                        client.socketWriter.WriteLine("accepted");
+                        client.socketWriter.WriteLine(session.ID.ToString());
+                        client.socketWriter.Flush();
+                        Console.WriteLine("Sent accepted id = " + session.ID.ToString() + " to client");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Cannot find this session: " + session.ID.ToString());
+                        // Send rejected (reason)
+                        client.socketWriter.WriteLine("rejected");
+                        client.socketWriter.WriteLine("Session ID: " + requestedSessionID.ToString() + " Not found!");
+                        client.socketWriter.Flush();
+                        Console.WriteLine("Sent rejected id = " + requestedSessionID.ToString() + " to client");
+
+                    }
+                    return session;
                 }
 
-                public override void HandleCloseCmd(ulong sessionId)
+                public override void HandleCloseCmd(SDSession session)
                 {
 
                 }
 
                 public override void HandleGetCmd(SDSession session)
                 {
+                    client.socketReader.ReadLine();
+
                     SendError("No session open");
                 }
 
-                public override void HandlePostCmd()
+                public override void HandlePostCmd(SDSession session)
                 {
+                    client.socketReader.ReadLine();
+
+                    //TODO: clear out the length and contents
+                    //TODO: Just close the connection?
+
                     SendError("No session open");
                 }
 
@@ -174,8 +211,7 @@ namespace SDServer
 
             class ReadyForDocumentCmd : State
             {
-                public ReadyForDocumentCmd(SessionTable sessionTable, NetworkStream socketNetworkStream, StreamReader socketReader, StreamWriter socketWriter) :
-                    base (sessionTable, socketNetworkStream, socketReader, socketWriter)
+                public ReadyForDocumentCmd(ClientThread client) : base (client)
                 {
                 }
 
@@ -185,13 +221,15 @@ namespace SDServer
                     return null;
                 }
 
-                public override SDSession HandleResumeCmd(ulong sessionId)
+                public override SDSession HandleResumeCmd()
                 {
+                    client.socketReader.ReadLine();
+
                     SendError("Session already open");
                     return null;
                 }
 
-                public override void HandleCloseCmd(ulong sessionId)
+                public override void HandleCloseCmd(SDSession session)
                 {
 
                 }
@@ -199,7 +237,7 @@ namespace SDServer
                 public override void HandleGetCmd(SDSession session)
                 {
                     // read the document name from the client
-                    string documentName = socketReader.ReadLine();
+                    string documentName = client.socketReader.ReadLine();
                     Console.WriteLine("Getting document " + documentName);
 
                     // lookup the document in the session
@@ -209,14 +247,14 @@ namespace SDServer
                         Console.WriteLine("Found value " + documentName);
 
                         // send the document name and length to the client
-                        socketWriter.WriteLine("success");
-                        socketWriter.WriteLine(documentName);
-                        socketWriter.WriteLine(documentContents.Length.ToString());
-                        socketWriter.Flush();
+                        client.socketWriter.WriteLine("success");
+                        client.socketWriter.WriteLine(documentName);
+                        client.socketWriter.WriteLine(documentContents.Length.ToString());
+                        client.socketWriter.Flush();
 
                         // send the document contents to the client
-                        socketWriter.Write(documentContents);
-                        socketWriter.Flush();
+                        client.socketWriter.Write(documentContents);
+                        client.socketWriter.Flush();
 
                         Console.WriteLine("Sent contents of " + documentName);
                     }
@@ -226,8 +264,36 @@ namespace SDServer
                     }
                 }
 
-                public override void HandlePostCmd()
+                public override void HandlePostCmd(SDSession session)
                 {
+                    // read the document name from the client
+                    string documentName = client.socketReader.ReadLine();
+                    Console.WriteLine("Posting document " + documentName);
+
+                    // read document length
+                    int documentLength = System.Convert.ToInt32(client.socketReader.ReadLine());
+                    Console.WriteLine("Document length " + documentLength.ToString());
+                    // read document contents
+                    char[] buffer = new char[documentLength];
+                    int result = client.socketReader.Read(buffer, 0, documentLength);
+                    Console.WriteLine("Received " + result.ToString() + " bytes of content");
+                    if (result == documentLength)
+                    {
+                        // store document
+                        string documentContents = new string(buffer);
+                        client.session.PutValue(documentName, documentContents);
+                        Console.WriteLine("Put documents into the session");
+
+                        // send success to client
+                        client.socketWriter.WriteLine("success");
+                        client.socketWriter.Flush();
+                        client.socketWriter.WriteLine("Sent Success to client!");
+                    }
+                    else
+                    {
+                        // send error to client
+                        SendError("Unexpected document length");
+                    }
 
                 }
 
@@ -236,6 +302,10 @@ namespace SDServer
             public ClientThread(Socket clientSocket, SessionTable sessionTable)
             {
                 this.clientSocket = clientSocket;
+                socketNetworkStream = new NetworkStream(clientSocket);
+                socketReader = new StreamReader(socketNetworkStream);
+                socketWriter = new StreamWriter(socketNetworkStream);
+
                 this.sessionTable = sessionTable;
                 session = null;
                 currentState = null;
@@ -251,11 +321,8 @@ namespace SDServer
 
             private void Run()
             {
-                NetworkStream socketNetworkStream = new NetworkStream(clientSocket);
-                StreamReader socketReader = new StreamReader(socketNetworkStream);
-                StreamWriter socketWriter = new StreamWriter(socketNetworkStream);
 
-                currentState = new ReadyForSessionCmd(sessionTable, socketNetworkStream, socketReader, socketWriter);
+                currentState = new ReadyForSessionCmd(this);
 
                 bool done = false;
                 while (!done && clientSocket.Connected)
@@ -274,23 +341,17 @@ namespace SDServer
                     {
                         case "open":
                             session = currentState.HandleOpenCmd();
-                            currentState = new ReadyForDocumentCmd(sessionTable, socketNetworkStream, socketReader, socketWriter);
+                            currentState = new ReadyForDocumentCmd(this);
                             break;
 
                         case "resume":
                             {
-                                // TODO: parse out the sessionId in lab
-                                ulong sessionId = 0;
-                                session = currentState.HandleResumeCmd(sessionId);
+                                session = currentState.HandleResumeCmd();
                                 if (session != null)
                                 {
                                     // successfully resumed session
                                     // change state
-                                    currentState = new ReadyForDocumentCmd(sessionTable, socketNetworkStream, socketReader, socketWriter);
-                                }
-                                else
-                                {
-                                    //???
+                                    currentState = new ReadyForDocumentCmd(this);
                                 }
                             }
                             break;
@@ -299,19 +360,29 @@ namespace SDServer
                             {
                                 Console.WriteLine("Received GET cmd from client");
                                 currentState.HandleGetCmd(session);
-
                             }
                             break;
 
                         case "post":
                             {
-                                // TODO: this,  in lab saturday
-
+                                Console.WriteLine("Received POST cmd from client");
+                                currentState.HandlePostCmd(session);
                                 break;
                             }
+                        case "close":
+                            {
+                                Console.WriteLine("Received CLOSE cmd from client");
+                                currentState.HandleCloseCmd(session);
+                            }
+                            break;
+
                         case "exit":
                             Console.WriteLine("Received EXIT cmd from client");
                             done = true;
+                            break;
+
+                        default:
+                            Console.WriteLine("Received unknown cmd from client: " + cmd);
                             break;
                     }
                 }
@@ -380,6 +451,17 @@ namespace SDServer
             SDSession session = new SDSession(sessionId);
             sessionTable[sessionId] = session;
             return session;
+        }
+
+        public SDSession Lookup(ulong sessionId)
+        {
+            if (sessionTable.ContainsKey(sessionId))
+            {
+                SDSession session = sessionTable[sessionId];
+                return session;
+            }
+
+            return null;
         }
     }
 

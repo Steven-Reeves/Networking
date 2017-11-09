@@ -24,6 +24,7 @@ namespace SDClient
 
         static bool OPEN_SESSION = false;
         static bool RESUME_SESSION = false;
+        static ulong RESUME_SESSION_ID = 0;
         static bool CLOSE_SESSION = false;
         static bool GET = false;
         static bool POST = false;
@@ -33,6 +34,8 @@ namespace SDClient
         static string serverIP = "127.0.0.1";
         static ulong SESSION_ID = 0;
         static string documentName = null;
+        // TODO: This? Debug mode?
+        static bool DEBUG = false;
 
         static void Main(string[] args)
         {
@@ -52,7 +55,6 @@ namespace SDClient
             //ushort serverPort = 40001;
             //string serverName = "FT Server";
 
-            // TODO: check all of these
             try
             {
                 /* Parse these arguments
@@ -101,14 +103,16 @@ namespace SDClient
                         // Input was -r <session id>
                         else if(args[i] == "-r")
                         {
-                            // TODO: resume existing session (in lab begining)
                             RESUME_SESSION = true;
-                            /*
+
                             if (++i < args.Length)
                             {
-                                SESSION_ID = args[i];
+                                RESUME_SESSION_ID = System.Convert.ToUInt64(args[i]);
                             }
-                            */
+                            else
+                            {
+                                throw new Exception("No value for -r argument!");
+                            }
                         }
                         // Input was -c <session id>
                         else if (args[i] == "-c")
@@ -153,6 +157,20 @@ namespace SDClient
                 return;
             }
 
+            // Show variables
+            Console.WriteLine("PRS Address: " + PRSIP.ToString());
+            Console.WriteLine("PRS Port: " + PRSPort.ToString());
+            Console.WriteLine("Server Address: " + serverIP.ToString());
+            Console.WriteLine("Open Session: " + OPEN_SESSION.ToString());
+            Console.WriteLine("Close Session: " + CLOSE_SESSION.ToString());
+            Console.WriteLine("Resume Session: " + RESUME_SESSION.ToString());
+            Console.WriteLine("Resume Session Address: " + RESUME_SESSION_ID.ToString());
+            Console.WriteLine("Get: " + GET.ToString());
+            Console.WriteLine("Post: " + POST.ToString());
+            Console.WriteLine("Document: " + documentName);
+            Console.WriteLine("///////////////" );
+
+
             // Lookup serverPort with PRS stub
             PRSCServiceClient prs = new PRSCServiceClient(serviceName, IPAddress.Parse(PRSIP), PRSPort);
             ushort serverPort = prs.LookupPort(serviceName);
@@ -169,112 +187,132 @@ namespace SDClient
             StreamWriter socketwriter = new StreamWriter(socketNetworkStream);
 
             // Open or resume session 
-            // TODO: get this from command line
-            ulong sessionID = 0;
-
-            string responseString;
-            if (OPEN_SESSION)
+            try
             {
-                // Open a new sesion with the server
-                Console.WriteLine("Sending OPEN to server");
-                socketwriter.WriteLine("open");
-                socketwriter.Flush();
+                ulong sessionID = 0;
 
-                // recieve accept from server
-
-                responseString = socketReader.ReadLine();
-                if (responseString == "accepted")
+                string responseString;
+                if (OPEN_SESSION)
                 {
-                    Console.WriteLine("Server Accepted new request");
+                    // Open a new sesion with the server
+                    Console.WriteLine("Sending OPEN to server");
+                    socketwriter.WriteLine("open");
+                    socketwriter.Flush();
+
+                    // recieve accept from server
                     responseString = socketReader.ReadLine();
-                    sessionID = System.Convert.ToUInt64(responseString);
-                    Console.WriteLine("Received sessionID = " + sessionID.ToString());
-                }
-                else
-                {
-                    Console.WriteLine("Received invalid response" + responseString);
-                }
-            }
-            // TODO: Resume session
-            /*
-            if (RESUME_SESSION)
-            {
-                // TODO: Resume session
-                Console.WriteLine("Sending RESUME to server for document " + documentName);
-                socketwriter.WriteLine("resume");
-                socketwriter.WriteLine(RESUME_SESSION_ID.ToString());
-                socketwriter.Flush();
-
-                // TODO: receive accept from server
-                responseString = socketReader.ReadLine();
-
-            }
-            */
-
-            // Perform Get/Post
-            if (GET)
-            {
-
-                // TODO: remove this line after testing
-                //documentName = "foo";
-
-                Console.WriteLine("Sending GET to server for document " + documentName);
-                socketwriter.WriteLine("get");
-                socketwriter.WriteLine(documentName);
-                socketwriter.Flush();
-
-                // Receive response for GET
-                responseString = socketReader.ReadLine();
-                if (responseString == "success")
-                {
-                    Console.WriteLine("Success!");
-                    responseString = socketReader.ReadLine();
-                    if (responseString == documentName)
+                    if (responseString == "accepted")
                     {
-                        Console.WriteLine("Recieved expected docment name " + documentName);
+                        Console.WriteLine("Server Accepted new request");
                         responseString = socketReader.ReadLine();
-                        int length = System.Convert.ToInt32(responseString);
-                        Console.WriteLine("Recieved length " + length);
-
-                        char[] buffer = new char[length];
-                        int result = socketReader.Read(buffer, 0, length);
-                        if (result == length)
-                        {
-                            string documentContents = new string(buffer);
-                            Console.WriteLine("Received " + result.ToString() + " bytes of content, as follows...");
-                            Console.WriteLine(documentContents);
-                        }
-                        else
-                            Console.WriteLine("Error, received wrong number of bytes");
-
+                        sessionID = System.Convert.ToUInt64(responseString);
+                        Console.WriteLine("Received sessionID = " + sessionID.ToString());
                     }
                     else
                     {
-                        Console.WriteLine("Recieved unexpected docment name!");
+                        Console.WriteLine("Received invalid response" + responseString);
                     }
-                    sessionID = System.Convert.ToUInt64(responseString);
-                    Console.WriteLine("Recieved sessionID = " + sessionID.ToString());
-
                 }
-                else if (responseString == "error")
+
+                else if (RESUME_SESSION)
                 {
+                    // Resume session with cmd line arg
+                    Console.WriteLine("Sending RESUME to server");
+                    socketwriter.WriteLine("resume");
+                    socketwriter.WriteLine(RESUME_SESSION_ID.ToString());
+                    socketwriter.Flush();
+
+                    // receive accept from server
                     responseString = socketReader.ReadLine();
-                    Console.WriteLine("Recieved error from server: " + responseString);
+                    if (responseString == "accepted")
+                    {
+                        Console.WriteLine("Server Accepted the resume request");
+                        responseString = socketReader.ReadLine();
+                        sessionID = System.Convert.ToUInt64(responseString);
+                        Console.WriteLine("Received sessionID = " + sessionID.ToString());
+                        if (sessionID != RESUME_SESSION_ID)
+                            throw new Exception("Resumed wrong session ID!");
+                    }
+                    // receive reject from server
+                    else if (responseString == "rejected")
+                    {
+                        Console.WriteLine("Server rejected the resume request");
+                        responseString = socketReader.ReadLine();
+                        Console.WriteLine("Rejection reason: " + responseString);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Received invalid response" + responseString);
+                    }
                 }
-                else
+
+
+                // Perform Get/Post
+                if (GET)
                 {
-                    Console.WriteLine("Recieved invalid response" + responseString);
+
+                    Console.WriteLine("Sending GET to server for document " + documentName);
+                    socketwriter.WriteLine("get");
+                    socketwriter.WriteLine(documentName);
+                    socketwriter.Flush();
+
+                    // Receive response for GET
+                    responseString = socketReader.ReadLine();
+                    if (responseString == "success")
+                    {
+                        Console.WriteLine("Success!");
+                        responseString = socketReader.ReadLine();
+                        if (responseString == documentName)
+                        {
+                            Console.WriteLine("Recieved expected docment name " + documentName);
+                            responseString = socketReader.ReadLine();
+                            int length = System.Convert.ToInt32(responseString);
+                            Console.WriteLine("Recieved length " + length);
+
+                            char[] buffer = new char[length];
+                            int result = socketReader.Read(buffer, 0, length);
+                            if (result == length)
+                            {
+                                string documentContents = new string(buffer);
+                                Console.WriteLine("Received " + result.ToString() + " bytes of content, as follows...");
+                                Console.WriteLine(documentContents);
+                            }
+                            else
+                                Console.WriteLine("Error, received wrong number of bytes");
+
+                        }
+                        else
+                        {
+                            Console.WriteLine("Recieved unexpected docment name!");
+                        }
+                        sessionID = System.Convert.ToUInt64(responseString);
+                        Console.WriteLine("Recieved sessionID = " + sessionID.ToString());
+
+                    }
+                    else if (responseString == "error")
+                    {
+                        responseString = socketReader.ReadLine();
+                        Console.WriteLine("Recieved error from server: " + responseString);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Recieved invalid response" + responseString);
+                    }
+                }
+
+                else if (POST)
+                {
+                    // TODO: POST
+                }
+
+                if (CLOSE_SESSION)
+                {
+                    // TODO: CLOSE
                 }
             }
-
-            if (POST)
+            catch(Exception ex)
             {
-                // TODO: POST
-            }
-
-            if (CLOSE_SESSION)
-            {
-                // TODO: CLOSE
+                Console.WriteLine("Exception: " + ex.Message);
             }
 
             // disconnect from the server and close socket
