@@ -302,7 +302,21 @@ namespace SDClient
 
                 else if (POST)
                 {
-                    // TODO: POST
+                    // read document contents
+                    string documentContents = "";
+                    string line;
+                    while((line = Console.ReadLine()) != null)
+                    {
+                        documentContents += line + "\n";
+                    }
+
+                    // Send Post
+                    Console.WriteLine("Sending POST to server for document " + documentName);
+                    socketwriter.WriteLine("post");
+                    socketwriter.WriteLine(documentName);
+                    socketwriter.WriteLine(documentContents.Length.ToString());
+                    socketwriter.Write(documentContents);
+                    socketwriter.Flush();
                 }
 
                 if (CLOSE_SESSION)
