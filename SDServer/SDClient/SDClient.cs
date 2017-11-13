@@ -118,7 +118,6 @@ namespace SDClient
                         else if (args[i] == "-c")
                         {
                             CLOSE_SESSION = true;
-                            // TODO: get session id
                         }
                         // Input was -get 
                         else if(args[i] == "-get")
@@ -321,7 +320,24 @@ namespace SDClient
 
                 if (CLOSE_SESSION)
                 {
-                    // TODO: CLOSE
+                    // Close session with cmd line arg
+                    Console.WriteLine("Sending Close to server");
+                    socketwriter.WriteLine("close");
+                    socketwriter.WriteLine(sessionID.ToString());
+                    socketwriter.Flush();
+
+                    // receive close from server
+                    responseString = socketReader.ReadLine();
+                    if (responseString == "closed")
+                    {
+                        responseString = socketReader.ReadLine();
+                        ulong closedSessionId = System.Convert.ToUInt64(responseString);
+                        Console.WriteLine("Server closed session " + closedSessionId.ToString());
+                    }
+                    else
+                    {
+                        Console.WriteLine("Received invalid response" + responseString);
+                    }
                 }
             }
             catch(Exception ex)

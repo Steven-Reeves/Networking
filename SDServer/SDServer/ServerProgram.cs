@@ -121,9 +121,29 @@ namespace SDServer
 
                 public abstract SDSession HandleOpenCmd();
                 public abstract SDSession HandleResumeCmd();
-                public abstract void HandleCloseCmd(SDSession session);
+
                 public abstract void HandleGetCmd(SDSession session);
                 public abstract void HandlePostCmd(SDSession session);
+
+                public void HandleCloseCmd(SDSession session)
+                {
+                    // Get session Id
+                    string closeString = client.socketReader.ReadLine();
+                    ulong closeSessionID = System.Convert.ToUInt64(closeString);
+
+                    // Close the session
+                    client.sessionTable.CloseSession(closeSessionID);
+
+                    if ((client.session != null) && (client.session.ID == closeSessionID))
+                    {
+                        client.session = null;
+                    }
+
+                    //Send respoonse to client
+                    client.socketWriter.WriteLine("closed");
+                    client.socketWriter.WriteLine(closeSessionID.ToString());
+                    client.socketWriter.Flush();
+                }
 
                 protected void SendError(string errorMsg)
                 {
@@ -185,11 +205,6 @@ namespace SDServer
                     return session;
                 }
 
-                public override void HandleCloseCmd(SDSession session)
-                {
-
-                }
-
                 public override void HandleGetCmd(SDSession session)
                 {
                     client.socketReader.ReadLine();
@@ -227,11 +242,6 @@ namespace SDServer
 
                     SendError("Session already open");
                     return null;
-                }
-
-                public override void HandleCloseCmd(SDSession session)
-                {
-
                 }
 
                 public override void HandleGetCmd(SDSession session)
@@ -373,6 +383,10 @@ namespace SDServer
                             {
                                 Console.WriteLine("Received CLOSE cmd from client");
                                 currentState.HandleCloseCmd(session);
+                                if(session == null)
+                                {
+                                    currentState = new ReadyForSessionCmd(this);
+                                }
                             }
                             break;
 
@@ -462,6 +476,14 @@ namespace SDServer
             }
 
             return null;
+        }
+
+        public void CloseSession(ulong sessionId)
+        {
+            if (sessionTable.ContainsKey(sessionId))
+            {
+                sessionTable.Remove(sessionId);
+            }
         }
     }
 
