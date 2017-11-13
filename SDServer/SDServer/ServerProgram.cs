@@ -18,7 +18,6 @@ namespace SDServer
 
         static void Main(string[] args)
         {
-            // TODO: Test argument parsing
 
             try
             {
@@ -215,9 +214,8 @@ namespace SDServer
                 public override void HandlePostCmd(SDSession session)
                 {
                     client.socketReader.ReadLine();
-
-                    //TODO: clear out the length and contents
-                    //TODO: Just close the connection?
+                    client.socketReader.ReadLine();
+                    client.socketReader.ReadLine();
 
                     SendError("No session open");
                 }
@@ -297,7 +295,7 @@ namespace SDServer
                         // send success to client
                         client.socketWriter.WriteLine("success");
                         client.socketWriter.Flush();
-                        client.socketWriter.WriteLine("Sent Success to client!");
+                        Console.WriteLine("Sent Success to client!");
                     }
                     else
                     {

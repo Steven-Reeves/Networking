@@ -19,7 +19,7 @@ namespace SDClient
 {
     class ClientProgram
     {
-        // TODO: add these for arg parsing
+
         // TODO: Readme for stubbing and such.
 
         static bool OPEN_SESSION = false;
@@ -32,28 +32,10 @@ namespace SDClient
         static ushort PRSPort = 30000;
         static string serviceName = "SD Server";
         static string serverIP = "127.0.0.1";
-        static ulong SESSION_ID = 0;
         static string documentName = null;
-        // TODO: This? Debug mode?
-        static bool DEBUG = false;
 
         static void Main(string[] args)
         {
-
-            // Current cmd args in 'Properties'
-            // TODO: Check for cmd args
-
-
-            // TODO: Added these to static
-            //string serviceName = "FT Client";
-            // Defualt serverPort
-            //ushort PRSPort = 30000;
-            //string PRSIP = "127.0.0.1";
-            // Default directory name
-            //string directoryName = "foo";
-            //string serverIP = null;
-            //ushort serverPort = 40001;
-            //string serverName = "FT Server";
 
             try
             {
@@ -266,7 +248,7 @@ namespace SDClient
                             Console.WriteLine("Recieved expected docment name " + documentName);
                             responseString = socketReader.ReadLine();
                             int length = System.Convert.ToInt32(responseString);
-                            Console.WriteLine("Recieved length " + length);
+                            Console.WriteLine("Recieved length " + length.ToString());
 
                             char[] buffer = new char[length];
                             int result = socketReader.Read(buffer, 0, length);
@@ -278,14 +260,11 @@ namespace SDClient
                             }
                             else
                                 Console.WriteLine("Error, received wrong number of bytes");
-
                         }
                         else
                         {
                             Console.WriteLine("Recieved unexpected docment name!");
                         }
-                        sessionID = System.Convert.ToUInt64(responseString);
-                        Console.WriteLine("Recieved sessionID = " + sessionID.ToString());
 
                     }
                     else if (responseString == "error")
@@ -316,6 +295,22 @@ namespace SDClient
                     socketwriter.WriteLine(documentContents.Length.ToString());
                     socketwriter.Write(documentContents);
                     socketwriter.Flush();
+
+                    // recieve success from server
+                    responseString = socketReader.ReadLine();
+                    if (responseString == "success")
+                    {
+                        Console.WriteLine("Success!");
+                    }
+                    else if (responseString == "error")
+                    {
+                        responseString = socketReader.ReadLine();
+                        Console.WriteLine("Recieved error from server: " + responseString);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Recieved invalid response" + responseString);
+                    }
                 }
 
                 if (CLOSE_SESSION)
@@ -338,6 +333,7 @@ namespace SDClient
                     {
                         Console.WriteLine("Received invalid response" + responseString);
                     }
+
                 }
             }
             catch(Exception ex)
