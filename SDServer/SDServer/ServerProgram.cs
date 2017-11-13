@@ -193,7 +193,7 @@ namespace SDServer
                     }
                     else
                     {
-                        Console.WriteLine("Cannot find this session: " + session.ID.ToString());
+                        Console.WriteLine("Cannot find this session: " + requestedSessionID.ToString());
                         // Send rejected (reason)
                         client.socketWriter.WriteLine("rejected");
                         client.socketWriter.WriteLine("Session ID: " + requestedSessionID.ToString() + " Not found!");
