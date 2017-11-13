@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDClient", "SDClient\SDClie
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PRSProtocolLibrary", "..\PRSServer\PRSProtocolLibrary\PRSProtocolLibrary.csproj", "{05DB1235-CB71-4CA5-97B6-988354107418}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDBrowser", "SDBrowser\SDBrowser.csproj", "{88AC8775-030B-4080-8610-F3834F0A63E4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{05DB1235-CB71-4CA5-97B6-988354107418}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{05DB1235-CB71-4CA5-97B6-988354107418}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{05DB1235-CB71-4CA5-97B6-988354107418}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88AC8775-030B-4080-8610-F3834F0A63E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88AC8775-030B-4080-8610-F3834F0A63E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88AC8775-030B-4080-8610-F3834F0A63E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88AC8775-030B-4080-8610-F3834F0A63E4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

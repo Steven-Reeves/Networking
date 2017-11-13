@@ -1,8 +1,8 @@
 ﻿/*
  * Steven Reeves 
- * 10/30/2017
+ * 11/12/2017
  * CST 415
- * Assignment #3
+ * Assignment #4
  */
 
 using System;
@@ -352,7 +352,7 @@ namespace SDClient
         }
     }
 
-    // This is okay for Assignment 3
+    // This is okay for Assignment 4
     class PRSCServiceClient
     {
         public PRSCServiceClient(string serviceName, IPAddress prsAdress, ushort port)

@@ -1,4 +1,10 @@
-﻿using System;
+﻿/*
+ * Steven Reeves 
+ * 11/12/2017
+ * CST 415
+ * Assignment #4
+ */
+ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -486,7 +492,7 @@ namespace SDServer
     }
 
 
-    // Stubbed out is okay for Assignment 3
+    // Stubbed out is okay for Assignment 4
     class PRSServiceClient
     {
         public static IPAddress prsAddress;
