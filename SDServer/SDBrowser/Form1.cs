@@ -18,11 +18,14 @@ namespace SDBrowser
     {
         static string PRS_ADDRESS = "127.0.0.1";
         static ushort PRS_PORT = 30000;
+        Dictionary<string, ulong> sdSessions = new Dictionary<string, ulong>();   // ip adress: sessionid
 
         public Form1()
         {
             InitializeComponent();
         }
+
+        // TODO: Remove console log stuff
 
         private void goButton_Click(object sender, EventArgs e)
         {
@@ -38,7 +41,7 @@ namespace SDBrowser
                     }
                     else if (parts[0] == "SD")
                     {
-                        // TODO: SD protocl
+                        SDGet(parts[1], parts[2]);
                     }
                     else
                     {
@@ -49,6 +52,132 @@ namespace SDBrowser
                 {
                     MessageBox.Show("Bad user! Invalid Address!");
                 }
+            }
+        }
+
+        private void SDGet(string serverIP, string documentName)
+        {
+            // clear the contents
+            contentTextBox.Clear();
+
+            try
+            {
+                // Lookup serverPort with PRS stub
+                PRSCServiceClient prs = new PRSCServiceClient("SD Server", IPAddress.Parse(PRS_ADDRESS), PRS_PORT);
+                ushort serverPort = prs.LookupPort("SD Server");
+
+                // connect to the server on it's IP address and port
+                Socket sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                sock.Connect(IPAddress.Parse(serverIP), serverPort);
+
+                // establish network stream and reader/writers for the socket
+                NetworkStream socketNetworkStream = new NetworkStream(sock);
+                StreamReader socketreader = new StreamReader(socketNetworkStream);
+                StreamWriter socketwriter = new StreamWriter(socketNetworkStream);
+
+                string responseString = null;
+                ulong sessionID = 0;
+                // open or resume a session
+                if (sdSessions.ContainsKey(serverIP))
+                {
+
+                    //resume
+                    sessionID = sdSessions[serverIP];
+                    socketwriter.WriteLine("resume");
+                    socketwriter.WriteLine(sessionID.ToString());
+                    socketwriter.Flush();
+
+                    // receive accept from server
+                    responseString = socketreader.ReadLine();
+                    if (responseString == "accepted")
+                    {
+                        responseString = socketreader.ReadLine();
+                        sessionID = System.Convert.ToUInt64(responseString);
+                    }
+                    // receive reject from server
+                    else if (responseString == "rejected")
+                    {
+                        responseString = socketreader.ReadLine();
+                        throw new Exception("Session resume rejected " + responseString);
+                    }
+                    else
+                    {
+                        throw new Exception("Received invalid response" + responseString);
+                    }
+                }
+                else
+                {
+                    // Open a new sesion with the server
+                    socketwriter.WriteLine("open");
+                    socketwriter.Flush();
+
+                    // recieve accept from server
+                    responseString = socketreader.ReadLine();
+                    if (responseString == "accepted")
+                    {
+                        responseString = socketreader.ReadLine();
+                        sessionID = System.Convert.ToUInt64(responseString);
+                    }
+                    else
+                    {
+                        throw new Exception("Invalid response from server: " + responseString);
+                    }
+                    sdSessions[serverIP] = sessionID;
+
+                }
+
+
+                //send get to server
+                socketwriter.WriteLine("get");
+                socketwriter.WriteLine(documentName);
+                socketwriter.Flush();
+
+                // Receive response for GET
+                responseString = socketreader.ReadLine();
+                if (responseString == "success")
+                {
+                    responseString = socketreader.ReadLine();
+                    if (responseString == documentName)
+                    {
+                        responseString = socketreader.ReadLine();
+                        int length = System.Convert.ToInt32(responseString);
+
+                        char[] buffer = new char[length];
+                        int result = socketreader.Read(buffer, 0, length);
+                        if (result == length)
+                        {
+                            string documentContents = new string(buffer);
+                            // Add this to the text box
+                            contentTextBox.AppendText(documentContents + "\r\n");
+                        }
+                        else
+                            throw new Exception("Error, received wrong number of bytes");
+                    }
+                    else
+                    {
+                        throw new Exception("Recieved unexpected docment name!");
+                    }
+
+                }
+                else if (responseString == "error")
+                {
+                    responseString = socketreader.ReadLine();
+                    throw new Exception("Recieved error from server: " + responseString);
+                }
+                else
+                {
+                    throw new Exception("Recieved invalid response" + responseString);
+                }
+                // Disconnect from server and close socket
+                sock.Disconnect(false);
+                socketreader.Close();
+                socketwriter.Close();
+                socketNetworkStream.Close();
+                sock.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
             }
         }
 
@@ -136,6 +265,36 @@ namespace SDBrowser
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if(sdSessions.Count > 0)
+            {
+                foreach(KeyValuePair<string, ulong> pair in sdSessions)
+                {
+                    //TODO: this
+                    /*
+                    / Close session with cmd line arg
+                    socketwriter.WriteLine("close");
+                    socketwriter.WriteLine(sessionID.ToString());
+                    socketwriter.Flush();
+
+                    // receive close from server
+                    responseString = socketReader.ReadLine();
+                    if (responseString == "closed")
+                    {
+                        responseString = socketReader.ReadLine();
+                        ulong closedSessionId = System.Convert.ToUInt64(responseString);
+                        Console.WriteLine("Server closed session " + closedSessionId.ToString());
+                    }
+                    else
+                    {
+                        Console.WriteLine("Received invalid response" + responseString);
+                    }
+                     */
+                }
             }
         }
     }

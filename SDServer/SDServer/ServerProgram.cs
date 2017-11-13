@@ -152,9 +152,17 @@ namespace SDServer
 
                 protected void SendError(string errorMsg)
                 {
-                    client.socketWriter.WriteLine("error");
-                    client.socketWriter.WriteLine(errorMsg);
-                    client.socketWriter.Flush();
+                    try
+                    {
+                        client.socketWriter.WriteLine("error");
+                        client.socketWriter.WriteLine(errorMsg);
+                        client.socketWriter.Flush();
+                        Console.WriteLine("Sent error to client: " + errorMsg);
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine("Failed to send error to client: " + ex.Message);
+                    }
                 }
             }
 
@@ -254,27 +262,64 @@ namespace SDServer
                     string documentName = client.socketReader.ReadLine();
                     Console.WriteLine("Getting document " + documentName);
 
-                    // lookup the document in the session
-                    try
+                    // get document contents
+                    string documentContents = null;
+                    if (documentName.Length >= 1 && documentName[0] == '/')
                     {
-                        string documentContents = session.GetValue(documentName);
-                        Console.WriteLine("Found value " + documentName);
 
-                        // send the document name and length to the client
-                        client.socketWriter.WriteLine("success");
-                        client.socketWriter.WriteLine(documentName);
-                        client.socketWriter.WriteLine(documentContents.Length.ToString());
-                        client.socketWriter.Flush();
-
-                        // send the document contents to the client
-                        client.socketWriter.Write(documentContents);
-                        client.socketWriter.Flush();
-
-                        Console.WriteLine("Sent contents of " + documentName);
+                        try
+                        {
+                            // Open the file
+                            Console.WriteLine("Document is a file!");
+                            string fileName = documentName.Substring(1);
+                            documentContents = File.ReadAllText(fileName);
+                            Console.WriteLine("Found file: " + fileName);
+                        }
+                        catch (Exception ex)
+                        {
+                            SendError(ex.Message);
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        SendError(ex.Message);
+
+                        try
+                        {
+                            Console.WriteLine("Document is a session variable!");
+                            // lookup the document in the session
+                            documentContents = session.GetValue(documentName);
+                            Console.WriteLine("Found value " + documentName);
+                        }
+                        catch (Exception ex)
+                        {
+                            SendError(ex.Message);
+                        }
+                    }
+                    if (documentContents != null)
+                    {
+                        // send contents to client
+                        try
+                        {
+                            // send the document name and length to the client
+                            client.socketWriter.WriteLine("success");
+                            client.socketWriter.WriteLine(documentName);
+                            client.socketWriter.WriteLine(documentContents.Length.ToString());
+                            client.socketWriter.Flush();
+
+                            // send the document contents to the client
+                            client.socketWriter.Write(documentContents);
+                            client.socketWriter.Flush();
+
+                            Console.WriteLine("Sent contents of " + documentName);
+                        }
+                        catch (Exception ex)
+                        {
+                            SendError(ex.Message);
+                        }
+                    }
+                    else
+                    {
+                        SendError("Document not found!");
                     }
                 }
 
@@ -293,11 +338,31 @@ namespace SDServer
                     Console.WriteLine("Received " + result.ToString() + " bytes of content");
                     if (result == documentLength)
                     {
-                        // store document
                         string documentContents = new string(buffer);
-                        client.session.PutValue(documentName, documentContents);
-                        Console.WriteLine("Put documents into the session");
 
+                        if (documentName.Length >= 1 && documentName[0] == '/')
+                        {
+                            try
+                            {
+                                // Open the file
+                                Console.WriteLine("Document is a file!");
+                                string fileName = documentName.Substring(1);
+                                File.AppendAllText(fileName, "\n" + documentContents);
+                                Console.WriteLine("Append contents to file: " + fileName);
+                            }
+                            catch (Exception ex)
+                            {
+                                SendError(ex.Message);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Document is a session!");
+
+                            // store document
+                            client.session.PutValue(documentName, documentContents);
+                            Console.WriteLine("Put documents into the session variable");
+                        }
                         // send success to client
                         client.socketWriter.WriteLine("success");
                         client.socketWriter.Flush();
@@ -418,8 +483,15 @@ namespace SDServer
             private static void ClientThreadFunc(object data)
             {
                 Console.WriteLine("Client thread started");
-                ClientThread ct = data as ClientThread;
-                ct.Run();
+                try
+                {
+                    ClientThread ct = data as ClientThread;
+                    ct.Run();
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine("Client failed: " + ex.Message);
+                }
             }
         }
     }
