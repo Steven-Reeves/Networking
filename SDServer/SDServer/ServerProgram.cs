@@ -135,6 +135,7 @@ namespace SDServer
                     // Get session Id
                     string closeString = client.socketReader.ReadLine();
                     ulong closeSessionID = System.Convert.ToUInt64(closeString);
+                    Console.WriteLine("Session " + closeSessionID.ToString() + " requested.");
 
                     // Close the session
                     client.sessionTable.CloseSession(closeSessionID);
@@ -148,6 +149,7 @@ namespace SDServer
                     client.socketWriter.WriteLine("closed");
                     client.socketWriter.WriteLine(closeSessionID.ToString());
                     client.socketWriter.Flush();
+                    Console.WriteLine("Session " + closeSessionID.ToString() + " closed!");
                 }
 
                 protected void SendError(string errorMsg)

@@ -274,26 +274,51 @@ namespace SDBrowser
             {
                 foreach(KeyValuePair<string, ulong> pair in sdSessions)
                 {
-                    //TODO: this
-                    /*
-                    / Close session with cmd line arg
-                    socketwriter.WriteLine("close");
-                    socketwriter.WriteLine(sessionID.ToString());
-                    socketwriter.Flush();
+                    string serverIP = pair.Key;
+                    ulong sessionID = pair.Value;
+                    try
+                    {
+                        // Lookup serverPort with PRS stub
+                        PRSCServiceClient prs = new PRSCServiceClient("SD Server", IPAddress.Parse(PRS_ADDRESS), PRS_PORT);
+                        ushort serverPort = prs.LookupPort("SD Server");
 
-                    // receive close from server
-                    responseString = socketReader.ReadLine();
-                    if (responseString == "closed")
-                    {
-                        responseString = socketReader.ReadLine();
-                        ulong closedSessionId = System.Convert.ToUInt64(responseString);
-                        Console.WriteLine("Server closed session " + closedSessionId.ToString());
+                        // connect to the server on it's IP address and port
+                        Socket sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                        sock.Connect(IPAddress.Parse(serverIP), serverPort);
+
+                        // establish network stream and reader/writers for the socket
+                        NetworkStream socketNetworkStream = new NetworkStream(sock);
+                        StreamReader socketreader = new StreamReader(socketNetworkStream);
+                        StreamWriter socketwriter = new StreamWriter(socketNetworkStream);
+
+                        // Close session
+                        socketwriter.WriteLine("close");
+                        socketwriter.WriteLine(sessionID.ToString());
+                        socketwriter.Flush();
+
+                        // receive close from server
+                        string responseString = socketreader.ReadLine();
+                        if (responseString == "closed")
+                        {
+                            responseString = socketreader.ReadLine();
+                            ulong closedSessionId = System.Convert.ToUInt64(responseString);
+                        }
+                        else
+                        {
+                            throw new Exception("Received invalid response" + responseString);
+                        }
+
+                        // Disconnect from server and close socket
+                        sock.Disconnect(false);
+                        socketreader.Close();
+                        socketwriter.Close();
+                        socketNetworkStream.Close();
+                        sock.Close();
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        Console.WriteLine("Received invalid response" + responseString);
+                        MessageBox.Show("Failed to close session with server: " + serverIP + " with session id: " + sessionID.ToString() + " error: " + ex.Message);
                     }
-                     */
                 }
             }
         }
