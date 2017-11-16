@@ -20,7 +20,6 @@ namespace SDClient
     class ClientProgram
     {
 
-        // TODO: Readme for stubbing and such.
 
         static bool OPEN_SESSION = false;
         static bool RESUME_SESSION = false;
