@@ -1,0 +1,7 @@
+method=post
+target=/survey/responder
+session-foo=bar
+length=33
+
+sayit=Say It!
+shortresponse=So-so.
