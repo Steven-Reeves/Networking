@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PRSProtocolLibrary", "..\PR
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDBrowser", "SDBrowser\SDBrowser.csproj", "{88AC8775-030B-4080-8610-F3834F0A63E4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Responder", "Responder\Responder.csproj", "{F2BF5832-096E-40B7-8DF8-CDE48B163184}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{88AC8775-030B-4080-8610-F3834F0A63E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{88AC8775-030B-4080-8610-F3834F0A63E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{88AC8775-030B-4080-8610-F3834F0A63E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2BF5832-096E-40B7-8DF8-CDE48B163184}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2BF5832-096E-40B7-8DF8-CDE48B163184}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2BF5832-096E-40B7-8DF8-CDE48B163184}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2BF5832-096E-40B7-8DF8-CDE48B163184}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -318,6 +318,39 @@ namespace SDBrowser
                 }
             }
         }
+
+        private void htmlBrowserPanel1_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void htmlBrowserPanel_LinkClicked(object sender, string target)
+        {
+            //TODO: decide which get/post to use
+            //Get(target);
+
+            //if SD
+            //SDGET(target);
+            //if FT
+            //FTGET(target);
+
+        }
+        private void htmlBrowserPanel_FormClicked(object sender,
+            HTMLBrowserPanel.FormClickEventArgs e)
+        {
+            //TODO: implement Get() and Post()
+            /*
+            if (e.Method.ToLower() == "get")
+                Get(e.Target);
+            else if (e.Method.ToLower() == "post")
+                Post(e.Target, e.FormVariablesString);
+            else
+                MessageBox.Show("Unrecognized method " + e.Method);
+                */
+        }
+
+
+
     }
     class PRSCServiceClient
     {
