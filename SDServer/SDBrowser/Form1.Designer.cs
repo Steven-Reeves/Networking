@@ -72,6 +72,8 @@
             this.htmlBrowserPanel.Name = "htmlBrowserPanel";
             this.htmlBrowserPanel.Size = new System.Drawing.Size(520, 323);
             this.htmlBrowserPanel.TabIndex = 3;
+            this.htmlBrowserPanel.LinkClicked += new System.EventHandler<string>(this.htmlBrowserPanel_LinkClicked);
+            this.htmlBrowserPanel.FormClicked += new System.EventHandler<SDBrowser.HTMLBrowserPanel.FormClickEventArgs>(this.htmlBrowserPanel_FormClicked);
             this.htmlBrowserPanel.Paint += new System.Windows.Forms.PaintEventHandler(this.htmlBrowserPanel1_Paint);
             // 
             // Form1
