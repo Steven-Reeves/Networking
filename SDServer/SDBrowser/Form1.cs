@@ -2,7 +2,7 @@
  * Steven Reeves 
  * 11/12/2017
  * CST 415
- * Assignment #4
+ * Assignment #5
  */
 
 using System;
@@ -38,33 +38,41 @@ namespace SDBrowser
             if (addressTextBox.Text != null && addressTextBox.Text.Length != 0)
             {
                 string address = addressTextBox.Text;
+                Get(address);
+            }
+        }
+
+        private void Get(string address)
+        { 
                 string[] parts = address.Split(':');
                 if (parts.Length == 3)
                 {
-                    if (parts[0] == "FT")
+                    string documentContents = null;
+                    if (parts[0].ToLower() == "ft")
                     {
-                        FTGet(parts[1], parts[2]);
+                        documentContents = FTGet(parts[1], parts[2]);
                     }
-                    else if (parts[0] == "SD")
+                    else if (parts[0].ToLower() == "sd")
                     {
-                        SDGet(parts[1], parts[2]);
+                        documentContents = SDGet(parts[1], parts[2]);
                     }
                     else
                     {
                         MessageBox.Show("Bad user! Protocol not found!");
                     }
+                // Update address bar and contents
+                addressTextBox.Text = address;
+                contentTextBox.Text = documentContents;
+                htmlBrowserPanel.SetContents(documentContents);
                 }
                 else
                 {
                     MessageBox.Show("Bad user! Invalid Address!");
                 }
-            }
         }
 
-        private void SDGet(string serverIP, string documentName)
+        private string SDGet(string serverIP, string documentName)
         {
-            // clear the contents
-            contentTextBox.Clear();
 
             try
             {
@@ -154,7 +162,7 @@ namespace SDBrowser
                         {
                             string documentContents = new string(buffer);
                             // Add this to the text box
-                            contentTextBox.AppendText(documentContents + "\r\n");
+                            return documentContents + "\r\n";
                         }
                         else
                             throw new Exception("Error, received wrong number of bytes");
@@ -168,6 +176,7 @@ namespace SDBrowser
                 else if (responseString == "error")
                 {
                     responseString = socketreader.ReadLine();
+                    return "Error from server";
                     throw new Exception("Recieved error from server: " + responseString);
                 }
                 else
@@ -184,84 +193,78 @@ namespace SDBrowser
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
+                return "Error";
             }
         }
 
-        private void FTGet(string serverIP, string directoryName)
+        private string FTGet(string serverIP, string directoryName)
         {
-            // clear the contents
-            contentTextBox.Clear();
+            string results = "";
+            // get the server port from the PRS for the "FT Server" service
+            PRSCServiceClient prs = new PRSCServiceClient("FT Server", IPAddress.Parse(PRS_ADDRESS), PRS_PORT);
+            ushort serverPort = prs.LookupPort("FT Server");
 
-            try
+            // connect to the server on it's IP address and port
+            Socket sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            sock.Connect(IPAddress.Parse(serverIP), serverPort);
+
+            // establish network stream and reader/writers for the socket
+            NetworkStream socketNetworkStream = new NetworkStream(sock);
+            StreamReader socketReader = new StreamReader(socketNetworkStream);
+            StreamWriter socketWriter = new StreamWriter(socketNetworkStream);
+
+            // send "get\n<directoryName>"
+            socketWriter.WriteLine("get");
+            socketWriter.WriteLine(directoryName);
+            socketWriter.Flush();
+
+            // download the files that the server says are in the directory
+            bool done = false;
+            while (!done)
             {
-                // get the server port from the PRS for the "FT Server" service
-                PRSCServiceClient prs = new PRSCServiceClient("FT Server", IPAddress.Parse(PRS_ADDRESS), PRS_PORT);
-                ushort serverPort = prs.LookupPort("FT Server");
+                // receive a message from the server
+                string cmdString = socketReader.ReadLine();
 
-                // connect to the server on it's IP address and port
-                Socket sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
-                sock.Connect(IPAddress.Parse(serverIP), serverPort);
-
-                // establish network stream and reader/writers for the socket
-                NetworkStream socketNetworkStream = new NetworkStream(sock);
-                StreamReader socketReader = new StreamReader(socketNetworkStream);
-                StreamWriter socketWriter = new StreamWriter(socketNetworkStream);
-
-                // send "get\n<directoryName>"
-                socketWriter.WriteLine("get");
-                socketWriter.WriteLine(directoryName);
-                socketWriter.Flush();
-
-                // download the files that the server says are in the directory
-                bool done = false;
-                while (!done)
+                //if (cmdString.Substring(0, 4) == "done")
+                if (cmdString == "done")
                 {
-                    // receive a message from the server
-                    string cmdString = socketReader.ReadLine();
+                    // server is done sending files
+                    done = true;
+                }
+                else
+                {
+                    // server sent us a file name and file length
+                    string filename = cmdString;
+                    string lengthstring = socketReader.ReadLine();
+                    int filelength = System.Convert.ToInt32(lengthstring);
 
-                    //if (cmdString.Substring(0, 4) == "done")
-                    if (cmdString == "done")
+                    // read the file contents as a string, and write them to the local file
+                    char[] buffer = new char[filelength];
+                    int result = socketReader.Read(buffer, 0, filelength);
+                    if (result == filelength)
                     {
-                        // server is done sending files
-                        done = true;
+
+                        string fileContents = new string(buffer);
+                        results += filename + "\r\n";
+                        results += fileContents + "\r\n";
+                        results += "\r\n";
+
                     }
                     else
                     {
-                        // server sent us a file name and file length
-                        string filename = cmdString;
-                        string lengthstring = socketReader.ReadLine();
-                        int filelength = System.Convert.ToInt32(lengthstring);
-
-                        // read the file contents as a string, and write them to the local file
-                        char[] buffer = new char[filelength];
-                        int result = socketReader.Read(buffer, 0, filelength);
-                        if (result == filelength)
-                        {
-
-                            string fileContents = new string(buffer);
-                            contentTextBox.AppendText(filename + "\r\n");
-                            contentTextBox.AppendText(fileContents + "\r\n");
-                            contentTextBox.AppendText("\r\n");
-
-                        }
-                        else
-                        {
-                            MessageBox.Show("Error: received " + result.ToString() + " bytes, but expected " + filelength.ToString() + " bytes!");
-                        }
+                        throw new Exception("Error: received " + result.ToString() + " bytes, but expected " + filelength.ToString() + " bytes!");
                     }
                 }
+            }
 
-                // disconnect from the server and close socket
-                sock.Disconnect(false);
-                socketReader.Close();
-                socketWriter.Close();
-                socketNetworkStream.Close();
-                sock.Close();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
+            // disconnect from the server and close socket
+            sock.Disconnect(false);
+            socketReader.Close();
+            socketWriter.Close();
+            socketNetworkStream.Close();
+            sock.Close();
+
+            return results;
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -324,29 +327,26 @@ namespace SDBrowser
 
         }
 
+        private void Post(string address, string postContents)
+        {
+            // TODO: implement this
+        }
+
         private void htmlBrowserPanel_LinkClicked(object sender, string target)
         {
-            //TODO: decide which get/post to use
-            //Get(target);
-
-            //if SD
-            //SDGET(target);
-            //if FT
-            //FTGET(target);
-
+            Get(target);
         }
         private void htmlBrowserPanel_FormClicked(object sender,
             HTMLBrowserPanel.FormClickEventArgs e)
         {
-            //TODO: implement Get() and Post()
-            /*
+            //TODO: implement Post()
+
             if (e.Method.ToLower() == "get")
                 Get(e.Target);
             else if (e.Method.ToLower() == "post")
                 Post(e.Target, e.FormVariablesString);
             else
                 MessageBox.Show("Unrecognized method " + e.Method);
-                */
         }
 
 

@@ -2,7 +2,7 @@
  * Steven Reeves 
  * 11/12/2017
  * CST 415
- * Assignment #4
+ * Assignment #5
  */
  using System;
 using System.Collections.Generic;
@@ -21,6 +21,9 @@ namespace SDServer
         static string prsIP = "127.0.0.1";
         static ushort prsPort = 30000;
         static int CLIENT_BACKLOG = 42;
+        static string DOCUMENT_DIR= null;
+        static string SCRIPT_DIR = null;
+        static string SCRIPTS = null;
 
         static void Main(string[] args)
         {
@@ -47,6 +50,33 @@ namespace SDServer
                             else
                                 throw new Exception("No value for -prs argument!");
                         }
+                        else if (args[i] == "-documentdir")
+                        {
+                            if (++i < args.Length)
+                            {
+                                DOCUMENT_DIR = args[i];
+                            }
+                            else
+                                throw new Exception("No value for -documentdir argument!");
+                        }
+                        else if (args[i] == "-scriptsdir")
+                        {
+                            if (++i < args.Length)
+                            {
+                                SCRIPT_DIR = args[i];
+                            }
+                            else
+                                throw new Exception("No value for -scriptsdir argument!");
+                        }
+                        else if (args[i] == "-scriptscfg")
+                        {
+                            if (++i < args.Length)
+                            {
+                                SCRIPTS = args[i];
+                            }
+                            else
+                                throw new Exception("No value for -scriptscfg argument!");
+                        }
                         else
                             throw new Exception("Unknown argument: " + args[i]);
                     }
@@ -57,6 +87,28 @@ namespace SDServer
             {
                 Console.WriteLine("Error processiong command arguments: " + ex.Message);
                 return;
+            }
+
+            if(DOCUMENT_DIR != null)
+            {
+                if (!Directory.Exists(DOCUMENT_DIR))
+                    throw new Exception("Invalid document directory");
+            }
+
+            if (SCRIPT_DIR != null)
+            {
+                if (!Directory.Exists(SCRIPT_DIR))
+                    throw new Exception("Invalid scripts directory");
+            }
+
+            if (DOCUMENT_DIR != null && SCRIPT_DIR != null)
+            {
+                DirectoryInfo dd = new DirectoryInfo(DOCUMENT_DIR);
+                DirectoryInfo sd = new DirectoryInfo(SCRIPT_DIR);
+                if (dd.FullName.ToLower() == sd.FullName.ToLower())
+                {
+                    throw new Exception("Document Directory must be different from Scripts directory!");
+                }
             }
 
             // Show variables
@@ -348,7 +400,9 @@ namespace SDServer
                             {
                                 // Open the file
                                 Console.WriteLine("Document is a file!");
-                                string fileName = documentName.Substring(1);
+                                ValidateDoc(documentName);
+
+                                string fileName = Path.Combine(DOCUMENT_DIR, documentName.Substring(1));
                                 File.AppendAllText(fileName, "\n" + documentContents);
                                 Console.WriteLine("Append contents to file: " + fileName);
                             }
@@ -378,6 +432,18 @@ namespace SDServer
 
                 }
 
+                protected void ValidateDoc(string documentName)
+                {
+                    if(DOCUMENT_DIR == null)
+                    {
+                        throw new Exception("Document files not enabled");
+                    }
+
+                    if (documentName.Contains(".."))
+                    {
+                        throw new Exception("File name not supported");
+                    }
+                }
             }
 
             public ClientThread(Socket clientSocket, SessionTable sessionTable)
@@ -566,7 +632,7 @@ namespace SDServer
     }
 
 
-    // Stubbed out is okay for Assignment 4
+    // Stubbed out is okay for Assignment 5
     class PRSServiceClient
     {
         public static IPAddress prsAddress;
